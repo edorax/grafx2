@@ -4,11 +4,11 @@
 _/  _/_/  _/_/      _/    _/  _/_/_/_/      _/          _/
 _/    _/  _/        _/    _/    _/        _/  _/      _/
  _/_/_/  _/          _/_/_/    _/      _/      _/  _/_/_/_/
-```
 
 GrafX2 - The Ultimate 256-color bitmap paint program
 Copyright (C)1996-2001 Sunset Design (G.Dorme & K.Maritaud)
 Copyright (C)2007-2012 the Grafx2 Project Team (A.Destugues & Y.Rizoud)
+```
 
 -------------------------------------
 
@@ -20,30 +20,17 @@ is not very different from the famous Deluxe Paint or Brilliance, so it will be
 quite easy to handle it if you know at least one of these programs. If you
 aren't used to the art of drawing with up to 256 colors, it will be a little
 more difficult for you, but you should give it a try (or more, because most of
-the power of this program won't show up on the first try). Then, you might
-eventually like to draw the oldskool way !
+the power of this program won't show up on the first try). You might
+eventually like to draw the oldschool way.
 
-Grafx2 was originally written for the MS-DOS operating system. The authors then
-released the sourcecode and we've modified it to run on your favorite platform
-(if we missed it, please tell us !).
+Grafx2 was originally written for MS-DOS. The authors then
+released the sourcecode and we've modified it to run on a range of platforms.
 
 # HELP
 
 Remember that right-clicking and left-clicking often have different functions,
-even on menu buttons. If you are in trouble when using the program, press <F1>
+even on menu buttons. If you are in trouble when using the program, press `<F1>`
 to get contextual help.
-
-# LICENSE
-
-GrafX2 is free software; you can redistribute it and/or modify it under the
-terms of the GNU General Public License as published by the Free Software
-foundation; version 2 of the License. See COPYING for details.
-
-The font Tuffy.ttf included as a sample in the fonts directory is public domain.
-
-The source code of Grafx2 should always be distributed along with the
-executable; You can normally find it in a packed archive whose name begins by
-"src". The original source code is available from the Subversion repository at svn://pulkomandy.tk/GrafX2/
 
 # AUTHORS AND SUPPORT
 
@@ -75,21 +62,6 @@ Check http://pulkomandy.tk/projects/GrafX2/log/ for (very) detailed changelog.
 Check http://pulkomandy.tk/projects/GrafX2/wiki/History for an overview of the
 new features and bugfixes in each numbered version.
 
-# GENERAL INFO
-
-We enjoy programming GrafX2, we hope you will enjoy drawing with it. If you like
-the program, here is a list of things you can do:
-
-* Register as an user at www.ohloh.net/p/grafx2 to improve our Karma
-* Port GrafX2 to your favourite platform
-* Report bugs or ask for features you miss (you'll get credited in the helpscreen !)
-* Make all your friends use GrafX2
-* Send us your nice drawings, we'll put them in our online gallery
-
-Enjoy Pixelling with GrafX2,
-
-PulkoMandy & Yves, the great GrafX2 Project Team.-
-
 # Grafx2 compilation and installation
 
 ## Requirements
@@ -97,11 +69,11 @@ PulkoMandy & Yves, the great GrafX2 Project Team.-
 * gcc C compiler (other compilers may work, but are not officially supported)
 * GNU make (other similar "make" tools may work, but are not supported)
 * SDL 2
-* SDL_image library
-* libpng (not on MacOSX)
+* SDL2_image library
+* libpng (not on macOS)
 * FreeType library (optional, for truetype fonts)
-* SDL_ttf library (optional, for truetype fonts)
-* Lua library v5.1 or v5.2 (optional, for Lua scripting)
+* SD2L_ttf library (optional, for truetype fonts)
+* Lua library v5.2 (optional, for Lua scripting)
 
 Extra requirements for Windows:
 
@@ -122,9 +94,9 @@ type:
     make
 
 If all goes well, it should build grafx2 (the main program) in the "bin"
-directory. Voil�.
+directory.
 
-If you don't have FreeType and SDL_ttf, type make NOTTF=1 instead. It will
+If you don't have FreeType and SDL2_ttf, type make NOTTF=1 instead. It will
 build a version without TrueType support : the Text tool will be limited to
 bitmap fonts, proportional fonts with .ttf extension won't be available.
 
@@ -181,19 +153,18 @@ Removes the copied files from your system, keeps your configuration.
 For both options, you can specify prefix=something to choose the target
 directory root: For example prefix=/usr or prefix=./test-install
 
-### gp2x
+### macOS
 
-The gp2x build is very similar to the Linux one. TTF is always disabled because
-there is no X11 support on the gp2x.
-To compile a gp2x executable, type
-	make GP2XCROSS=1
-This will only work on an UNIXsystem (Linux or FreeBSD).
+* Install the XCode command line compiler with `xcode-select --install`
+* Install the rest of the dependencies with Homebrew
+* Compile with: `cd src; make`
 
 ### Windows
 
-It is also possible to compile from linux, with this command :
+It is possible to compile from linux, with this command :
 	make WIN32CROSS=1
-You will need the mingw cross-compiler, and all the librairies listed above.
+
+You will need the mingw cross-compiler, and all the libraries listed above.
 
 Here is a list of the resources used to build the Windows version:
 
@@ -206,8 +177,7 @@ MSYS
 Mingw
   installed in C:\MSYS\mingw
 
-SDL:
-  SDL-devel-1.2.13-mingw32.tar.gz
+SDL2:
   Uncompress in temporary directory
   make
   make install (no effect?)
@@ -221,7 +191,7 @@ Zlib:
 Libpng
   Requires: Zlib
   http://www.mirrorservice.org/sites/download.sourceforge.net/pub/sourceforge/l/li/libpng/
-  libpng-1.4.2.tar.gz (Before June 2010, we were using libpng-1.0.23.tar.gz)
+  libpng-1.6.tar.gz
   Uncompress in temporary directory
   ./configure
   make
@@ -244,12 +214,11 @@ libtiff (optional - improves SDL_image with TIFF reading)
   make
   Don't use 'make install', copy tiff.h libtiff.a manually instead.
 
-SDL_image:
+SDL2_image:
   Requires: Libpng
   Requires optionally: libtiff
   Requires optionally: libjpeg
   http://www.mirrorservice.org/sites/download.sourceforge.net/pub/sourceforge/l/li/libsdl/
-  SDL_image-1.2.8.zip
   Uncompress in temporary directory
   ./configure
   Check in the messages that png worked
@@ -263,11 +232,9 @@ FreeType:
   mingw-freetype-2.3.7-2
   Uncompress in c:/mwsys/mingw
 
-SDL_ttf:
+SDL2_ttf:
   No mingw package
   http://www.mirrorservice.org/sites/download.sourceforge.net/pub/sourceforge/l/li/libsdl/
-  SDL_ttf-2.0.9-win32.zip for DLLs: libfreetype-6.dll, SDL_ttf.dll, zlib1.dll
-  SDL_ttf-2.0.9.tar.gz
 
 Lua:
   (optional)
@@ -279,70 +246,6 @@ Lua:
   Copy luaconf.h, lualib.h, lua.h, lauxlib.h to c:\msys\mingw\include
   Copy liblua.a to c:\msys\mingw\lib
   Copy lua51.dll to c:\msys\mingw\bin
-
-### Atari TOS machines
-
-The Atari build is very similar to the Linux one. The build might work on native machine with gcc 4.3> compiler,
-but it wasn't tested. You can also build binary for Coldfire based machines(e.g. Firebee) by
-replacing '-m68020-60' in makefile to '-mcpu=5475'.
-
-Preferable way is to build GRAFX2 with use of cross compiler, you can get one from Vincent Riviere site:
-(URL: http://vincent.riviere.free.fr/soft/m68k-atari-mint). There are versions for win32 (Cygwin) and
-debian packages for latest Ubuntu (32/64bit).
-
-Before compilation you have to build all the needed libraries mentioned in requirements.
-
-To compile a Atari TOS executable, type in
-	make ATARICROSS=1 prefix=/usr/m68k-atari-mint
-You can also add other options like NOTTF,NOLUA,NOLAYERS etc. to enable/disable program features..
-
-If you don't know how build libraries here's some hints. Please note that prefix path in examples below is valid only under Linux,
-in case of Cygwin the path will be '/opt/m68k-atari-mint'. There will be no prefix when building on native machine.
-You have to omit 'sudo' under Cygwin and native build. Stick to this order and you will be fine ;> ...
-The versions of libraries were tested, you can also try newer versions. As I mentioned earlier, replace '-m68020-60' with '-mcpu=5475'
-if you want to target Coldfire machines.
-
-## libpng [optional](for png reading in SDL_image)
-
-note: you will need libzip too
-libpng 1.2.44
-./configure --prefix=/usr/m68k-atari-mint --disable-shared --enable-static --host=m68k-atari-mint CFLAGS="-m68020-60 -O2 -fomit-frame-pointer"
-sudo make install
-or
-libpng 1.4.44
-./configure --prefix=/usr/m68k-atari-mint --disable-shared --enable-static --host=m68k-atari-mint CFLAGS="-m68020-60 -O2 -fomit-frame-pointer -DPNG_NO_SETJMP"
-sudo make install
-
-## libjpeg, libtiff [optional] (for jpeg/tiff support in SDL_image)
-
-./configure --prefix=/usr/m68k-atari-mint --disable-shared --enable-static --host=m68k-atari-mint CFLAGS="-m68020-60 -O2 -fomit-frame-pointer"
-sudo make install
-
-## freetype 2.4.4 [optional] (for TTF fonts support, required by SDL_ttf)
-
-./configure --prefix=/usr/m68k-atari-mint --disable-shared --enable-static --host=m68k-atari-mint CFLAGS="-m68020-60 -O2 -fomit-frame-pointer"
-sudo make install
-
-## lua 5.0.4 [optional] (for LUA scripting support)
-
-Here you have to customize makefiles, add prefixes, platform has to be set as generic.
-
-## SDL 1.2 [now using SDL2 instead]
-
-note: best is to grab it directly from Mercurial repository
-./configure --prefix=/usr/m68k-atari-mint --disable-shared --enable-static --host=m68k-atari-mint --disable-video-opengl --disable-shared --enable-static --disable-threads CFLAGS="-m68020-60 -O2 -fomit-frame-pointer"
-sudo make install
-
-## SDL_ttf [optional] (for ttf fonts support, depends on SDL and freetype, now using SDL2 instead)
-
-./configure --prefix=/usr/m68k-atari-mint --disable-shared --enable-static --host=m68k-atari-mint --disable-shared --enable-static --with-sdl-prefix=/usr/m68k-atari-mint --with-freetype-prefix=/usr/m68k-atari-mint CFLAGS=" -m68020-60 -O2 -fomit-frame-pointer"
-sudo make install
-
-## SDL_image 1.2.10 [mandatory] (now using SDL2 instead)
-
-    ./configure --prefix=/usr/m68k-atari-mint --disable-shared --enable-static --host=m68k-atari-mint --disable-shared --enable-static --with-sdl-prefix=/usr/m68k-atari-mint CFLAGS="-DHAVE_OPENGL=0 -m68020-60 -O2 -fomit-frame-pointer"
-    sudo make install
-
 
 # Technical documentation for GrafX 2.00 - Version 1.08 (10/05/1997)
 
@@ -629,7 +532,6 @@ ming in incomprehensible explanations.
 
 
 MCGA: (Standard VGA mode)
-�����
 
     Is there anybody in this world who still don't now how to set the MCGA
   320x200 256 colors mode ??!?
@@ -642,7 +544,6 @@ MCGA: (Standard VGA mode)
 
 
 X-Modes: (Extended VGA modes)
-��������
 
     Well... I think the original Mode X was 320x240 but now, many people call
   "X-Modes" (or Modes X, or Tweaked modes) all the VGA modes that use more
@@ -742,182 +643,181 @@ X-Modes: (Extended VGA modes)
     out  dx,al       ;
 
 
-
   The table of constants you must send is one of these:
   (These are tables for C but they can be easily used in other languages)
 
-  word X320Y224[] =
-    { 0x0BA3, 0x6F06, 0xBA07, 0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0x0014,
-      0xC715, 0x0416, 0xE317 };
-  word X320Y240[] =
-    { 0x0AE3, 0x0D06, 0x3E07, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0x0014, 0xE715,
-      0x0616, 0xE317 };
-  word X320Y256[] =
-    { 0x0CE3, 0x2306, 0xB207, 0x0008, 0x6109, 0x0A10, 0xAC11, 0xFF12, 0x2013,
-      0x0014, 0x0715, 0x1A16, 0xE317 };
-  word X320Y270[] =
-    { 0x0BE7, 0x3006, 0xF007, 0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x0014,
-      0x1F15, 0x2F16, 0xE317 };
-  word X320Y282[] =
-    { 0x0CE3, 0x6206, 0xF007, 0x6109, 0x310F, 0x3710, 0x8911, 0x3312, 0x2F13,
-      0x0014, 0x3C15, 0x5C16, 0xE317 };
-  word X320Y300[] =
-    { 0x0DE3, 0x4606, 0x1F07, 0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x2013,
-      0x0014, 0x2F15, 0x4416, 0xE317 };
-  word X320Y360[] =
-    { 0x09E3, 0x4009, 0x8810, 0x8511, 0x6712, 0x2013, 0x0014, 0x6D15, 0xBA16,
-      0xE317 };
-  word X320Y400[] =
-    { 0x03E3, 0x4009, 0x0014, 0xE317 };
-  word X320Y448[] =
-    { 0x0BA3, 0x6F06, 0xBA07, 0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0x0014,
-      0xC715, 0x0416, 0xE317 };
-  word X320Y480[] =
-    { 0x0AE3, 0x0D06, 0x3E07, 0x4009, 0xEA10, 0xAC11, 0xDF12, 0x0014, 0xE715,
-      0x0616 , 0xE317};
-  word X320Y512[] =
-    { 0x0CE3, 0x2306, 0xB207, 0x0008, 0x6009, 0x0A10, 0xAC11, 0xFF12, 0x2013,
-      0x0014, 0x0715, 0x1A16, 0xE317 };
-  word X320Y540[] =
-    { 0x0BE7, 0x3006, 0xF007, 0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x0014,
-      0x1F15, 0x2F16, 0xE317 };
-  word X320Y564[] =
-    { 0x0CE7, 0x6206, 0xF007, 0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x2013,
-      0x0014, 0x3C15, 0x5C16, 0xE317 };
-  word X320Y600[] =
-    { 0x0BE7, 0xBE06, 0xF007, 0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x0014,
-      0x5815, 0x7016, 0xE317 };
-  word X360Y200[] =
-    { 0x09E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x2D13, 0x0014,
-      0xE317 };
-  word X360Y224[] =
-    { 0x12A7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6F06, 0xBA07,
-      0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0x2D13, 0x0014, 0xC715, 0x0416,
-      0xE317 };
-  word X360Y240[] =
-    { 0x11E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x0D06, 0x3E07,
-      0x4109, 0xEA10, 0xAC11, 0xDF12, 0x2D13, 0x0014, 0xE715, 0x0616, 0xE317 };
-  word X360Y256[] =
-    { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x2B06, 0xB207,
-      0x0008, 0x6109, 0x0E10, 0xAC11, 0xFF12, 0x2D13, 0x0014, 0x0715, 0x1A16,
-      0xE317 };
-  word X360Y270[] =
-    { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x3006, 0xF007,
-      0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x2D13, 0x0014, 0x1F15, 0x2F16,
-      0xE317 };
-  word X360Y282[] =
-    { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6206, 0xF007,
-      0x6109, 0x310F, 0x3710, 0x8911, 0x3312, 0x2D13, 0x0014, 0x3C15, 0x5C16,
-      0xE317 };
-  word X360Y300[] =
-    { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x4606, 0x1F07,
-      0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x2D13, 0x0014, 0x2F15, 0x4416,
-      0xE317 };
-  word X360Y360[] =
-    { 0x0FE7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x4009, 0x8810,
-      0x8511, 0x6712, 0x2D13, 0x0014, 0x6D15, 0xBA16, 0xE317 };
-  word X360Y400[] =
-    { 0x0AE7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x4009, 0x2D13,
-      0x0014, 0xE317 };
-  word X360Y448[] =
-    { 0x12A7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6F06, 0xBA07,
-      0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0x2D13, 0x0014, 0xC715, 0x0416,
-      0xE317 };
-  word X360Y480[] =
-    { 0x11E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x0D06, 0x3E07,
-      0x4009, 0xEA10, 0xAC11, 0xDF12, 0x2D13, 0x0014, 0xE715, 0x0616, 0xE317 };
-  word X360Y512[] =
-    { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x2B06, 0xB207,
-      0x0008, 0x6009, 0x0E10, 0xAC11, 0xff12, 0x2D13, 0x0014, 0x0715, 0x1A16,
-      0xE317 };
-  word X360Y540[] =
-    { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x3006, 0xF007,
-      0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x2D13, 0x0014, 0x1F15, 0x2F16,
-      0xE317 };
-  word X360Y564[] =
-    { 0x12EB, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6206, 0xF007,
-      0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x2D13, 0x0014, 0x3C15, 0x5C16,
-      0xE317 };
-  word X360Y600[] =
-    { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0xBE06, 0xF007,
-      0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x2D13, 0x0014, 0x5815, 0x7016,
-      0xE317 };
-  word X400Y200[] =
-    { 0x09E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x3213, 0x0014,
-      0xE317 };
-  word X400Y224[] =
-    { 0x12A7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6F06, 0xBA07,
-      0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0x3213, 0x0014, 0xC715, 0x0416,
-      0xE317 };
-  word X400Y240[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x0D06, 0x3E07,
-      0x0008, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0x3213, 0x0014, 0xE715, 0x0616,
-      0xE317 };
-  word X400Y256[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x2B06, 0xB207,
-      0x0008, 0x6109, 0x1310, 0xAC11, 0xFF12, 0x3213, 0x0014, 0x0715, 0x1A16,
-      0xE317 };
-  word X400Y270[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x3006, 0xF007,
-      0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x3213, 0x0014, 0x1F15, 0x2F16,
-      0xE317 };
-  word X400Y282[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6206, 0xF007,
-      0x6109, 0x310F, 0x3710, 0x8911, 0x3312, 0x3213, 0x0014, 0x3C15, 0x5C16,
-      0xE317 };
-  word X400Y300[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x4606, 0x1F07,
-      0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x3213, 0x0014, 0x2F15, 0x4416,
-      0xE317 };
-  word X400Y360[] =
-    { 0x0FE7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x4009, 0x8810,
-      0x8511, 0x6712, 0x3213, 0x0014, 0x6D15, 0xBA16, 0xE317 };
-  word X400Y400[] =
-    { 0x0AE7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x4009, 0x3213,
-      0x0014, 0xE317 };
-  word X400Y448[] =
-    { 0x12A7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6F06, 0xBA07,
-      0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0x3213, 0x0014, 0xC715, 0x0416,
-      0xE317 };
-  word X400Y480[] =
-    { 0x11E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x0D06, 0x3E07,
-      0x4009, 0xEA10, 0xAC11, 0xDF12, 0x3213, 0x0014, 0xE715, 0x0616, 0xE317 };
-  word X400Y512[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x2B06, 0xB207,
-      0x0008, 0x6009, 0x1310, 0xAC11, 0xFF12, 0x3213, 0x0014, 0x0715, 0x1A16,
-      0xE317 };
-  word X400Y540[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x3006, 0xF007,
-      0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x3213, 0x0014, 0x1F15, 0x2F16,
-      0xE317 };
-  word X400Y564[] =
-    { 0x12EB, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6206, 0xF007,
-      0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x3213, 0x0014, 0x3C15, 0x5C16,
-      0xE317 };
-  word X400Y600[] =
-    { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0xBE06, 0xF007,
-      0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x3213, 0x0014, 0x5815, 0x7016,
-      0xE317 };
+    word X320Y224[] =
+      { 0x0BA3, 0x6F06, 0xBA07, 0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0x0014,
+        0xC715, 0x0416, 0xE317 };
+    word X320Y240[] =
+      { 0x0AE3, 0x0D06, 0x3E07, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0x0014, 0xE715,
+        0x0616, 0xE317 };
+    word X320Y256[] =
+      { 0x0CE3, 0x2306, 0xB207, 0x0008, 0x6109, 0x0A10, 0xAC11, 0xFF12, 0x2013,
+        0x0014, 0x0715, 0x1A16, 0xE317 };
+    word X320Y270[] =
+      { 0x0BE7, 0x3006, 0xF007, 0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x0014,
+        0x1F15, 0x2F16, 0xE317 };
+    word X320Y282[] =
+      { 0x0CE3, 0x6206, 0xF007, 0x6109, 0x310F, 0x3710, 0x8911, 0x3312, 0x2F13,
+        0x0014, 0x3C15, 0x5C16, 0xE317 };
+    word X320Y300[] =
+      { 0x0DE3, 0x4606, 0x1F07, 0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x2013,
+        0x0014, 0x2F15, 0x4416, 0xE317 };
+    word X320Y360[] =
+      { 0x09E3, 0x4009, 0x8810, 0x8511, 0x6712, 0x2013, 0x0014, 0x6D15, 0xBA16,
+        0xE317 };
+    word X320Y400[] =
+      { 0x03E3, 0x4009, 0x0014, 0xE317 };
+    word X320Y448[] =
+      { 0x0BA3, 0x6F06, 0xBA07, 0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0x0014,
+        0xC715, 0x0416, 0xE317 };
+    word X320Y480[] =
+      { 0x0AE3, 0x0D06, 0x3E07, 0x4009, 0xEA10, 0xAC11, 0xDF12, 0x0014, 0xE715,
+        0x0616 , 0xE317};
+    word X320Y512[] =
+      { 0x0CE3, 0x2306, 0xB207, 0x0008, 0x6009, 0x0A10, 0xAC11, 0xFF12, 0x2013,
+        0x0014, 0x0715, 0x1A16, 0xE317 };
+    word X320Y540[] =
+      { 0x0BE7, 0x3006, 0xF007, 0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x0014,
+        0x1F15, 0x2F16, 0xE317 };
+    word X320Y564[] =
+      { 0x0CE7, 0x6206, 0xF007, 0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x2013,
+        0x0014, 0x3C15, 0x5C16, 0xE317 };
+    word X320Y600[] =
+      { 0x0BE7, 0xBE06, 0xF007, 0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x0014,
+        0x5815, 0x7016, 0xE317 };
+    word X360Y200[] =
+      { 0x09E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x2D13, 0x0014,
+        0xE317 };
+    word X360Y224[] =
+      { 0x12A7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6F06, 0xBA07,
+        0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0x2D13, 0x0014, 0xC715, 0x0416,
+        0xE317 };
+    word X360Y240[] =
+      { 0x11E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x0D06, 0x3E07,
+        0x4109, 0xEA10, 0xAC11, 0xDF12, 0x2D13, 0x0014, 0xE715, 0x0616, 0xE317 };
+    word X360Y256[] =
+      { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x2B06, 0xB207,
+        0x0008, 0x6109, 0x0E10, 0xAC11, 0xFF12, 0x2D13, 0x0014, 0x0715, 0x1A16,
+        0xE317 };
+    word X360Y270[] =
+      { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x3006, 0xF007,
+        0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x2D13, 0x0014, 0x1F15, 0x2F16,
+        0xE317 };
+    word X360Y282[] =
+      { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6206, 0xF007,
+        0x6109, 0x310F, 0x3710, 0x8911, 0x3312, 0x2D13, 0x0014, 0x3C15, 0x5C16,
+        0xE317 };
+    word X360Y300[] =
+      { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x4606, 0x1F07,
+        0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x2D13, 0x0014, 0x2F15, 0x4416,
+        0xE317 };
+    word X360Y360[] =
+      { 0x0FE7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x4009, 0x8810,
+        0x8511, 0x6712, 0x2D13, 0x0014, 0x6D15, 0xBA16, 0xE317 };
+    word X360Y400[] =
+      { 0x0AE7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x4009, 0x2D13,
+        0x0014, 0xE317 };
+    word X360Y448[] =
+      { 0x12A7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6F06, 0xBA07,
+        0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0x2D13, 0x0014, 0xC715, 0x0416,
+        0xE317 };
+    word X360Y480[] =
+      { 0x11E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x0D06, 0x3E07,
+        0x4009, 0xEA10, 0xAC11, 0xDF12, 0x2D13, 0x0014, 0xE715, 0x0616, 0xE317 };
+    word X360Y512[] =
+      { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x2B06, 0xB207,
+        0x0008, 0x6009, 0x0E10, 0xAC11, 0xff12, 0x2D13, 0x0014, 0x0715, 0x1A16,
+        0xE317 };
+    word X360Y540[] =
+      { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x3006, 0xF007,
+        0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x2D13, 0x0014, 0x1F15, 0x2F16,
+        0xE317 };
+    word X360Y564[] =
+      { 0x12EB, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0x6206, 0xF007,
+        0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x2D13, 0x0014, 0x3C15, 0x5C16,
+        0xE317 };
+    word X360Y600[] =
+      { 0x12E7, 0x6B00, 0x5901, 0x5A02, 0x8E03, 0x5E04, 0x8A05, 0xBE06, 0xF007,
+        0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x2D13, 0x0014, 0x5815, 0x7016,
+        0xE317 };
+    word X400Y200[] =
+      { 0x09E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x3213, 0x0014,
+        0xE317 };
+    word X400Y224[] =
+      { 0x12A7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6F06, 0xBA07,
+        0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0x3213, 0x0014, 0xC715, 0x0416,
+        0xE317 };
+    word X400Y240[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x0D06, 0x3E07,
+        0x0008, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0x3213, 0x0014, 0xE715, 0x0616,
+        0xE317 };
+    word X400Y256[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x2B06, 0xB207,
+        0x0008, 0x6109, 0x1310, 0xAC11, 0xFF12, 0x3213, 0x0014, 0x0715, 0x1A16,
+        0xE317 };
+    word X400Y270[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x3006, 0xF007,
+        0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x3213, 0x0014, 0x1F15, 0x2F16,
+        0xE317 };
+    word X400Y282[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6206, 0xF007,
+        0x6109, 0x310F, 0x3710, 0x8911, 0x3312, 0x3213, 0x0014, 0x3C15, 0x5C16,
+        0xE317 };
+    word X400Y300[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x4606, 0x1F07,
+        0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x3213, 0x0014, 0x2F15, 0x4416,
+        0xE317 };
+    word X400Y360[] =
+      { 0x0FE7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x4009, 0x8810,
+        0x8511, 0x6712, 0x3213, 0x0014, 0x6D15, 0xBA16, 0xE317 };
+    word X400Y400[] =
+      { 0x0AE7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x4009, 0x3213,
+        0x0014, 0xE317 };
+    word X400Y448[] =
+      { 0x12A7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6F06, 0xBA07,
+        0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0x3213, 0x0014, 0xC715, 0x0416,
+        0xE317 };
+    word X400Y480[] =
+      { 0x11E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x0D06, 0x3E07,
+        0x4009, 0xEA10, 0xAC11, 0xDF12, 0x3213, 0x0014, 0xE715, 0x0616, 0xE317 };
+    word X400Y512[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x2B06, 0xB207,
+        0x0008, 0x6009, 0x1310, 0xAC11, 0xFF12, 0x3213, 0x0014, 0x0715, 0x1A16,
+        0xE317 };
+    word X400Y540[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x3006, 0xF007,
+        0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x3213, 0x0014, 0x1F15, 0x2F16,
+        0xE317 };
+    word X400Y564[] =
+      { 0x12EB, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0x6206, 0xF007,
+        0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x3213, 0x0014, 0x3C15, 0x5C16,
+        0xE317 };
+    word X400Y600[] =
+      { 0x12E7, 0x7100, 0x6301, 0x6402, 0x9203, 0x6604, 0x8205, 0xBE06, 0xF007,
+        0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x3213, 0x0014, 0x5815, 0x7016,
+        0xE317 };
 
 
   The structure: (example)
 
-       �����This is the number of values to send to the CRTC registers. This
-       �    is actually the number of words in the tables minus 1 (because the
-       �    1st word of the table is not sent to the CRTC but contains a value
-       �    to send to the MISCELLANEOUS register and the number of values to
-       �    send to the CRTC registers ;) ).
-       �
-       � ���This is the value to send to the MISCEALLANEOUS register (or ZERO
-       � �  if no value must be sent to it).
-       � �
-       � �     ����This is a value to send to a register of the CRTC.
-       � �     �
-       � �     � ��This is the index of the CRTC register that will receive
-       � �     � � the value.
-       ÿÿ    ÿÿ
-   { 0x0AE3, 0x0D06, 0x3E07, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0x0014, 0xE715,
-     0x0616, 0xE317 };
+         �����This is the number of values to send to the CRTC registers. This
+         �    is actually the number of words in the tables minus 1 (because the
+         �    1st word of the table is not sent to the CRTC but contains a value
+         �    to send to the MISCELLANEOUS register and the number of values to
+         �    send to the CRTC registers ;) ).
+         �
+         � ���This is the value to send to the MISCEALLANEOUS register (or ZERO
+         � �  if no value must be sent to it).
+         � �
+         � �     ����This is a value to send to a register of the CRTC.
+         � �     �
+         � �     � ��This is the index of the CRTC register that will receive
+         � �     � � the value.
+         ÿÿ    ÿÿ
+     { 0x0AE3, 0x0D06, 0x3E07, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0x0014, 0xE715,
+       0x0616, 0xE317 };
 
     You can notice that CRTC registers 0 to 5 (and 13h) define the screen
   width while registers 6 to 17h (except 13h) define the screen height.
@@ -943,21 +843,20 @@ X-Modes: (Extended VGA modes)
   better with a majority of computers.
 
 
-
 VESA: (A "pseudo-standard" for Super-VGA modes)
-�����
 
     We use VESA for modes that require a width of 640, 800 or 1024 pixels.
   But there is a way to combine X-Modes height with VESA so it's possible to
   have modes as weird as in X-Mode.
 
 
-  mov  ax,4F02h
-  mov  bx,Video_mode
-  int  10h
+    mov  ax,4F02h
+    mov  bx,Video_mode
+    int  10h
 
 
   256-color-VESA video modes are:
+
     100h :  640x400
     101h :  640x480
     103h :  800x600
@@ -975,86 +874,82 @@ VESA: (A "pseudo-standard" for Super-VGA modes)
   width, and then call Modify_CRTC_registers with the proper Height table.
 
   Example (640x512) :
+
     VESA_Set_mode(101h)          /* Set a video mode with the same width */
     Modify_CRTC_registers(Y512)  /* Modify height */
 
 
   * Height tables:
 
-  word Y224[] =
-    { 0x09A3, 0x6F06, 0xBA07, 0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0xC715,
-      0x0416 };
-  word Y240[] =
-    { 0x09E3, 0x0D06, 0x3E07, 0x0008, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0xE715,
-      0x0616 };
-  word Y256[] =
-    { 0x0900, 0x2B06, 0xB207, 0x0008, 0x6109, 0x0A10, 0xAC11, 0xFF12, 0x0715,
-      0x1A16 };
-  word Y270[] =
-    { 0x09E7, 0x3006, 0xF007, 0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x1F15,
-      0x2F16 };
-  word Y282[] =
-    { 0x0AE3, 0x6206, 0xF007, 0x0008, 0x6109, 0x310F, 0x3710, 0x8911, 0x3312,
-      0x3C15, 0x5C16 };
-  word Y300[] =
-    { 0x09E3, 0x4606, 0x1F07, 0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x2F15,
-      0x4416 };
-  word Y350[] =
-    { 0x09A3, 0xBF06, 0x1F07, 0x0008, 0x4009, 0x8310, 0x8511, 0x5D12, 0x6315,
-      0xBA16 };
-  word Y360[] =
-    { 0x07E3, 0x0008, 0x4009, 0x8810, 0x8511, 0x6712, 0x6D15, 0xBA16 };
-  word Y400[] =
-    { 0x01E3, 0x4009 };
-  word Y448[] =
-    { 0x09A3, 0x6F06, 0xBA07, 0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0xC715,
-      0x0416 };
-  word Y480[] =
-    { 0x09E3, 0x0D06, 0x3E07, 0x0008, 0x4009, 0xEA10, 0xAC11, 0xDF12, 0xE715,
-      0x0616 };
-  word Y512[] =
-    { 0x0900, 0x2B06, 0xB207, 0x0008, 0x6009, 0x0A10, 0xAC11, 0xFF12, 0x0715,
-      0x1A16 };
-  word Y540[] =
-    { 0x09E7, 0x3006, 0xF007, 0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x1F15,
-      0x2F16 };
-  word Y564[] =
-    { 0x09E7, 0x6206, 0xF007, 0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x3C15,
-      0x5C16 };
-  word Y600[] =
-    { 0x09E7, 0xBE06, 0xF007, 0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x5815,
-      0x7016 };
+    word Y224[] =
+      { 0x09A3, 0x6F06, 0xBA07, 0x0008, 0x4109, 0x0810, 0x8A11, 0xBF12, 0xC715,
+        0x0416 };
+    word Y240[] =
+      { 0x09E3, 0x0D06, 0x3E07, 0x0008, 0x4109, 0xEA10, 0xAC11, 0xDF12, 0xE715,
+        0x0616 };
+    word Y256[] =
+      { 0x0900, 0x2B06, 0xB207, 0x0008, 0x6109, 0x0A10, 0xAC11, 0xFF12, 0x0715,
+        0x1A16 };
+    word Y270[] =
+      { 0x09E7, 0x3006, 0xF007, 0x0008, 0x6109, 0x2010, 0xA911, 0x1B12, 0x1F15,
+        0x2F16 };
+    word Y282[] =
+      { 0x0AE3, 0x6206, 0xF007, 0x0008, 0x6109, 0x310F, 0x3710, 0x8911, 0x3312,
+        0x3C15, 0x5C16 };
+    word Y300[] =
+      { 0x09E3, 0x4606, 0x1F07, 0x0008, 0x4009, 0x3110, 0x8011, 0x2B12, 0x2F15,
+        0x4416 };
+    word Y350[] =
+      { 0x09A3, 0xBF06, 0x1F07, 0x0008, 0x4009, 0x8310, 0x8511, 0x5D12, 0x6315,
+        0xBA16 };
+    word Y360[] =
+      { 0x07E3, 0x0008, 0x4009, 0x8810, 0x8511, 0x6712, 0x6D15, 0xBA16 };
+    word Y400[] =
+      { 0x01E3, 0x4009 };
+    word Y448[] =
+      { 0x09A3, 0x6F06, 0xBA07, 0x0008, 0x4009, 0x0810, 0x8A11, 0xBF12, 0xC715,
+        0x0416 };
+    word Y480[] =
+      { 0x09E3, 0x0D06, 0x3E07, 0x0008, 0x4009, 0xEA10, 0xAC11, 0xDF12, 0xE715,
+        0x0616 };
+    word Y512[] =
+      { 0x0900, 0x2B06, 0xB207, 0x0008, 0x6009, 0x0A10, 0xAC11, 0xFF12, 0x0715,
+        0x1A16 };
+    word Y540[] =
+      { 0x09E7, 0x3006, 0xF007, 0x0008, 0x6009, 0x2010, 0xA911, 0x1B12, 0x1F15,
+        0x2F16 };
+    word Y564[] =
+      { 0x09E7, 0x6206, 0xF007, 0x0008, 0x6009, 0x3E10, 0x8911, 0x3312, 0x3C15,
+        0x5C16 };
+    word Y600[] =
+      { 0x09E7, 0xBE06, 0xF007, 0x0008, 0x6009, 0x7C10, 0x8C11, 0x5712, 0x5815,
+        0x7016 };
 
+  Modifying CRTC registers: (inspired by X-Modes init... See above for more details or comments)
 
+    mov  esi,XVESA_Ptr
+    cld
 
-  Modifying CRTC registers: (inspired by X-Modes init... See above for more
-  �������������������������  details or comments)
+    lodsb
+    or   al,al       ; Shall we modify the basic video mode?
+    jz   NoThankYou  ; No?Ŀ The answer can be "No" because initialisations
+    mov  dx,3C2h     ;     � of certain VESA modes directly set the right
+    out  dx,al       ;     � value for the Miscellaneous register.
+    NoThankYou:      ; <����
 
-  mov  esi,XVESA_Ptr
-  cld
+    mov  dx,3D4h
+    mov  al,11h
+    out  dx,al
+    inc  dx
+    in   al,dx
+    and  al,7Fh
+    out  dx,al
 
-  lodsb
-  or   al,al       ; Shall we modify the basic video mode?
-  jz   NoThankYou  ; No?Ŀ The answer can be "No" because initialisations
-  mov  dx,3C2h     ;     � of certain VESA modes directly set the right
-  out  dx,al       ;     � value for the Miscellaneous register.
-  NoThankYou:      ; <����
-
-  mov  dx,3D4h
-  mov  al,11h
-  out  dx,al
-  inc  dx
-  in   al,dx
-  and  al,7Fh
-  out  dx,al
-
-  dec  dx
-  lodsb
-  xor  ecx,ecx
-  mov  cl,al
-  rep  outsw
-
-
+    dec  dx
+    lodsb
+    xor  ecx,ecx
+    mov  cl,al
+    rep  outsw
 
     If you are cunning enough, you'll be able to combine constants used in
   X-Modes to get more "Xtd-VESA" modes such as 640x200, 800x480, etc...
@@ -1062,3 +957,32 @@ VESA: (A "pseudo-standard" for Super-VGA modes)
   generally interlaced... But who knows?...)
     The most difficult is to find the right value for the MISCELLANEOUS
   register.
+
+# GENERAL INFO
+
+We enjoy programming GrafX2, we hope you will enjoy drawing with it. If you like
+the program, here is a list of things you can do:
+
+* Register as an user at www.ohloh.net/p/grafx2 to improve our Karma
+* Port GrafX2 to your favourite platform
+* Report bugs or ask for features you miss (you'll get credited in the helpscreen !)
+* Make all your friends use GrafX2
+* Send us your nice drawings, we'll put them in our online gallery
+
+Enjoy Pixelling with GrafX2,
+
+PulkoMandy & Yves, the great GrafX2 Project Team.-
+
+# LICENSE
+
+GrafX2 is free software; you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+foundation; version 2 of the License. See COPYING for details.
+
+The font Tuffy.ttf included as a sample in the fonts directory is public domain.
+
+The source code of Grafx2 should always be distributed along with the
+executable; You can normally find it in a packed archive whose name begins by
+"src". The original source code is available from the Subversion repository at svn://pulkomandy.tk/GrafX2/
+
+
