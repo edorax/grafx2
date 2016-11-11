@@ -32,7 +32,7 @@
 
 // TrueType
 #ifndef NOTTF
-#if defined(__macosx__)
+#if defined(__macos__)
   #include <SDL_ttf/SDL_ttf.h>
 #else
   #include <SDL2/SDL_ttf.h>
@@ -45,7 +45,7 @@
 #endif
 #endif
 
-#if defined(__macosx__)
+#if defined(__macos__)
   #import <corefoundation/corefoundation.h>
   #import <sys/param.h>
 #endif
@@ -100,7 +100,7 @@ void Add_font(const char *name)
   
   // Détermination du type:
 
-#if defined(__macosx__)
+#if defined(__macos__)
 
   if (size < 6) return;
   
@@ -146,7 +146,7 @@ void Add_font(const char *name)
       font->Is_bitmap = 1;
       break;
     default:
-      #if defined(__macosx__)
+      #if defined(__macos__)
          if(strcasecmp(&name[size-6], "dfont") == 0)
          {
            font->Is_truetype = 1;
@@ -302,7 +302,7 @@ void Init_text(void)
       }
     }
     #endif
-  #elif defined(__macosx__)
+  #elif defined(__macos__)
     // Récupération de la liste des fonts avec fontconfig
     #ifndef NOTTF
 

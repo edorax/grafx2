@@ -8,6 +8,8 @@
 #include <unistd.h>
 #if defined(__AROS__) || defined(__linux__) || defined(__GLIBC__)|| defined(__MINT__) || defined(__FreeBSD__)
 #include <limits.h>
+#elif defined(__macos__)
+#define PATH_MAX 256
 #endif
 
 #if defined(__AROS__) || defined(__BEOS__) || defined(__MORPHOS__) || defined(__GP2X__) || defined(__WIZ__) || defined(__CAANOO__) || defined(__amigaos__)

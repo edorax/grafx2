@@ -672,7 +672,7 @@ void Scroll_picture(byte * main_src, byte * main_dest, short x_offset,short y_of
 #if defined(__WIN32__)
 #define _WIN32_WINNT 0x0500
 #include <windows.h>
-#elif defined(__macosx__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#elif defined(__macos__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
   #if defined(__OpenBSD__)
   #include <sys/param.h>
   #endif
@@ -714,7 +714,7 @@ unsigned long Memory_free(void)
   mstt.dwLength = sizeof(MEMORYSTATUS);
   GlobalMemoryStatus(&mstt);
   return mstt.dwAvailPhys;
-#elif defined(__macosx__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#elif defined(__macos__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
   int mib[2];
   int maxmem;
   size_t len;

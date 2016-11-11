@@ -50,7 +50,7 @@
 // UPDATE_METHOD can be set from makefile, otherwise it's selected here
 // depending on the platform :
 #ifndef UPDATE_METHOD
-  #if defined(__macosx__)
+  #if defined(__macos__)
     #define UPDATE_METHOD     UPDATE_METHOD_FULL_PAGE
   #elif defined(__MINT__)
     #define UPDATE_METHOD     UPDATE_METHOD_CUMULATED

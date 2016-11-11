@@ -35,6 +35,8 @@
   #define PATH_MAX 260
 #elif defined(__ANDROID__)
   #include <sys/limits.h> // for PATH_MAX
+#elif defined(__macos__)
+  #define PATH_MAX 256
 #else
   #include <limits.h> // for PATH_MAX
 #endif

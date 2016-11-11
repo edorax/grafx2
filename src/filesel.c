@@ -669,7 +669,7 @@ void Read_list_of_drives(T_Fileselector *list, byte name_length)
             list->Nb_directories++;
         }
         next = mount_points_list -> me_next;
-        #if !(defined(__macosx__) || defined(__FreeBSD__))
+        #if !(defined(__macos__) || defined(__FreeBSD__))
           free(mount_points_list -> me_type);
         #endif
         free(mount_points_list -> me_devname);

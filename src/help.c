@@ -22,12 +22,12 @@
     You should have received a copy of the GNU General Public License
     along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 */
-#include <stdio.h>
+//#include <stdio.h>
 #include <string.h>
 
 #if defined(__WIN32__)
     #include <windows.h>
-#elif defined(__macosx__) || defined(__FreeBSD__)
+#elif defined(__macos__) || defined(__FreeBSD__)
     #include <sys/param.h>
     #include <sys/mount.h>
 #elif defined (__linux__) || defined(__SYLLABLE__)
@@ -736,7 +736,7 @@ void Button_Stats(void)
       GetDiskFreeSpaceEx(Main_selector.Directory,&tailleU,NULL,NULL);
       mem_size = tailleU.QuadPart;
     }
-#elif defined(__linux__) || defined(__macosx__) || defined(__FreeBSD__) || defined(__SYLLABLE__) || defined(__AROS__)
+#elif defined(__linux__) || defined(__macos__) || defined(__FreeBSD__) || defined(__SYLLABLE__) || defined(__AROS__)
     {
       struct statfs disk_info;
       statfs(Main_selector.Directory,&disk_info);

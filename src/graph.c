@@ -1620,7 +1620,7 @@ void Draw_empty_rectangle(short start_x,short start_y,short end_x,short end_y,by
     Pixel_figure_permanent(  end_x,y_pos,color);
   }
 
-#if defined(__macosx__) || defined(__FreeBSD__)
+#if defined(__macos__) || defined(__FreeBSD__)
   Update_part_of_screen(start_x,end_x,end_x-start_x,end_y-start_y);
 #endif
 }

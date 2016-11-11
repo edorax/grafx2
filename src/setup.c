@@ -24,7 +24,7 @@
     along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 */
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -32,7 +32,7 @@
 #if defined(__WIN32__)
   #include <windows.h>
   #include <io.h> // Mingw's _mkdir()
-#elif defined(__macosx__)
+#elif defined(__macos__)
   #import <corefoundation/corefoundation.h>
   #import <sys/param.h>
 #elif defined(__FreeBSD__)
@@ -76,7 +76,7 @@ void Set_program_directory(const char * argv0,char * program_dir)
   (void)argv0; // unused sometimes
   
   // MacOSX
-  #if defined(__macosx__)
+  #if defined(__macos__)
     CFURLRef url = CFBundleCopyBundleURL(CFBundleGetMainBundle());
     CFURLGetFileSystemRepresentation(url,true,(UInt8*)program_dir,MAXPATHLEN);
     CFRelease(url);
@@ -125,7 +125,7 @@ void Set_data_directory(const char * program_dir, char * data_dir)
   // On all platforms, data is relative to the executable's directory
   strcpy(data_dir,program_dir);
   // On MacOSX,  it is stored in a special folder:
-  #if defined(__macosx__)
+  #if defined(__macos__)
     strcat(data_dir,"Contents/Resources/");
   // On GP2X, executable is not in bin/
   #elif defined (__GP2X__) || defined (__gp2x__) || defined (__WIZ__) || defined (__CAANOO__) || defined(__ANDROID__)
@@ -170,7 +170,7 @@ void Set_config_directory(const char * program_dir, char * config_dir)
     // In priority: check root directory
     strcpy(config_dir, program_dir);
     // On all the remaining targets except OSX, the executable is in ./bin
-    #if !defined(__macosx__)
+    #if !defined(__macos__)
     strcat(config_dir, "../");
     #endif
     strcpy(filename, config_dir);
@@ -192,7 +192,7 @@ void Set_config_directory(const char * program_dir, char * config_dir)
             MAX_PATH_CHARACTERS);
           config_parent_dir = parent;
         }
-      #elif defined(__macosx__)
+      #elif defined(__macos__)
         // "~/Library/Preferences/com.googlecode.grafx2"
         const char* Config_SubDir = "Library/Preferences/com.googlecode.grafx2";
         config_parent_dir = getenv("HOME");
@@ -237,7 +237,7 @@ void Set_config_directory(const char * program_dir, char * config_dir)
           {
             // Echec: on se rabat sur le repertoire de l'executable.
             strcpy(config_dir,program_dir);
-            #if defined(__macosx__)
+            #if defined(__macos__)
               strcat(config_dir, "../");
             #endif
           }

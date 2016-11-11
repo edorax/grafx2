@@ -20,13 +20,13 @@
     You should have received a copy of the GNU General Public License
     along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 */
-#include <stdio.h>
+//#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include "global.h"
 #include "keyboard.h"
 
-#if defined(__macosx__)
+#if defined(__macos__)
   // Apple's "command" character is not present in the ANSI table, so we
   // recycled an ANSI value that doesn't have any displayable character
   // associated.
@@ -642,7 +642,7 @@ word Keysym_to_ANSI(SDL_Keysym keysym)
   // This part was removed from the MacOSX port, but I put it back for others
   // as on Linux and Windows, it's what allows editing a text line with the keys
   // K2K(SDLK_LEFT), K2K(SDLK_RIGHT), K2K(SDLK_HOME), K2K(SDLK_END) etc.
-  #if !(defined(__macosx__) || defined(__FreeBSD__))
+  #if !(defined(__macos__) || defined(__FreeBSD__))
   if ( keysym.unicode == 0)
   {
 
@@ -736,7 +736,7 @@ word Keysym_to_ANSI(SDL_Keysym keysym)
   // Key entre 127 et 255
   if (keysym.unicode<256)
   {
-#if defined(__macosx__) || defined(__FreeBSD__)
+#if defined(__macos__) || defined(__FreeBSD__)
     // fc: Looks like there's a mismatch with delete & backspace
     //     i don't why SDLK_DELETE was returned instead of SDLK_BACKSPACE
     if(keysym.unicode == 127)

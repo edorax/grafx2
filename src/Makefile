@@ -1,5 +1,5 @@
 #  Grafx2 - The Ultimate 256-color bitmap paint program
-#  
+#
 #  Copyright 2012 Franck Charlet
 #  Copyright 2011 Pawel Góralski
 #  Copyright 2009 Per Olofsson
@@ -7,17 +7,17 @@
 #  Copyright 2008-2010 Yves Rizoud
 #  Copyright 2007-2010 Adrien Destugues
 #  Copyright 1996-2001 Sunset Design (Guillaume Dorme & Karl Maritaud)
-#  
+#
 #  Grafx2 is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
 #  as published by the Free Software Foundation; version 2
 #  of the License.
-#  
+#
 #  Grafx2 is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 
@@ -35,7 +35,7 @@
 ### Specific to build macOS universal binaries on Tiger or Lion ###
 ### (may need to be changed or removed depending on the macOS version) ###
 
-MACOSX_SYSROOT = /Developer/SDKs/MacOSX10.6.sdk
+MACOSX_SYSROOT = /Developer/SDKs/MacOSX10.12.sdk
 MACOSX_ARCH = -arch x86_64 -arch i386
 
 ### PLATFORM DETECTION AND CONFIGURATION ###
@@ -60,7 +60,7 @@ ifdef COMSPEC
   PLATFORMOBJ = $(OBJDIR)/winres.o
   PLATFORM = win32
   #some misc files we have to add to the release archive under windows.
-  PLATFORMFILES = bin/SDL2.dll bin/SDL2_image.dll bin/libpng16-16.dll bin/zlib1.dll $(TTFLIBS)
+  PLATFORMFILES = bin/SDL2.dll bin/SDL2_image.dll bin/libpng12-16.dll bin/zlib1.dll $(TTFLIBS)
   ZIP = zip
 else
 
@@ -100,26 +100,31 @@ else
 
     # these are for use with homebrew
     SDLCOPT = $(shell sdl2-config --cflags)
-    SDLLOPT = $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_image) -I/usr/local/include
+    SDLLOPT = $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_image)
     LUACOPT = $(shell pkg-config lua --cflags --silence-errors ||pkg-config lua5.2 --cflags --silence-errors ||pkg-config lua-5.2 --cflags)
     LUALOPT = $(shell pkg-config lua --libs --silence-errors ||pkg-config lua5.2 --libs --silence-errors ||pkg-config lua-5.2 --libs)
 
     # these are for use with macOS native frameworks
-    #-framework SDL_ttf 
+    #-framework SDL_ttf
     #SDLLOPT = -isysroot $(MACOSX_SYSROOT) $(MACOSX_ARCH) -L/usr/lib -framework SDL -framework SDL2_image -framework Cocoa -framework Carbon -framework OpenGL
     #SDLCOPT = $(MACOSX_ARCH) -I$(FWDIR)/SDL.framework/Headers -I$(FWDIR)/SDL2_image.framework/Headers -I$(FWDIR)/SDL_ttf.framework/Headers -D_THREAD_SAFE
     #LUACOPT = -I$(FWDIR)/Lua.framework/Headers
     #LUALOPT = -framework lua
 
+    PNGCOPT = $(shell pkg-config libpng --cflags)
+    PNGLOPT = $(shell pkg-config libpng --libs)
+
     # these are for everyone
-    COPT = -D_DARWIN_C_SOURCE -D__macosx__ -D__linux__ -W -Wall -Wdeclaration-after-statement -O$(OPTIM) -std=c99 -c -g $(LUACOPT) $(SDLCOPT) $(TTFCOPT) -I/usr/include -I/usr/local/include
-    LOPT = $(SDLLOPT) $(LUALOPT) -framework libpng16 -lz
+    #COPT = -D_DARWIN_C_SOURCE -D__macos__ -W -Wall -Wdeclaration-after-statement -O$(OPTIM) -c -g $(LUACOPT) $(SDLCOPT) $(TTFCOPT) $(PNGCOPT) -I/usr/local/include -I/usr/include/machine -w -framework png
+    #LOPT = $(SDLLOPT) $(LUALOPT) $(PNGLOPT) -lz -lm
+    COPT = -D_DARWIN_C_SOURCE -D__macos__ -W -Wall -Wdeclaration-after-statement -O$(OPTIM) -c -g $(LUACOPT) $(SDLCOPT) $(TTFCOPT) -I/usr/local/include -I/usr/include/machine -w -framework png
+    LOPT = $(SDLLOPT) $(LUALOPT) -lz -lm
     # Use gcc for compiling. Use ncc to build a callgraph and analyze the code.
     CC = gcc
     #CC = nccgen -ncgcc -ncld -ncfabs
-    OBJDIR = ../obj/macosx
+    OBJDIR = ../obj/macos
     PLATFORMOBJ = $(OBJDIR)/SDLMain.o
-    FCLOPT = 
+    FCLOPT =
     MACAPPEXE = Grafx2.app/Contents/MacOS/Grafx2
     NOTTF = 1
   else
@@ -234,10 +239,10 @@ else
 	LUALOPT = -llua
         OBJDIR = ../obj/m68k-atari-mint
         PLATFORM = m68k-atari-mint
-        STRIP = strip -s 
+        STRIP = strip -s
 	STACK = stack
 	FIX_FLAGS = flags
-	FCLOPT = 
+	FCLOPT =
 	COPT = -W -Wall -m68020-60 -fomit-frame-pointer -std=c99 -Wdeclaration-after-statement -D__MINT__ -DNO_INLINE_MATH -O$(OPTIM) -c -I$(prefix)/include `$(prefix)/bin/libpng12-config --cflags` `$(prefix)/bin/sdl2-config --cflags` $(JOYCOPT) $(LUACOPT)
 	LOPT = -static -m68020-60 -lSDL2_image `$(prefix)/bin/sdl2-config --libs` -L$(prefix)/lib -ltiff -ljpeg `$(prefix)/bin/libpng12-config --libs` -lz -lm $(TTFLOPT) -lfreetype $(LUALOPT) $(LAYERLOPT)
   else
@@ -256,7 +261,7 @@ else
     LOPT = `sdl2-config --libs` -lSDL2_image $(TTFLOPT) -lpng -lz $(LUALOPT) -lm
     CC = gcc
     OBJDIR = ../obj/syllable
-    FCLOPT = 
+    FCLOPT =
   else
     # Finally, the default rules that work fine for most unix/gcc systems, linux and freebsd are tested.
     # Linux and FreeBSD specific (default rules)
@@ -275,7 +280,7 @@ else
         LUALOPT = $(shell pkg-config lua --libs --silence-errors ||pkg-config lua5.2 --libs --silence-errors ||pkg-config lua-5.2 --libs)
       endif
     endif
-    
+
     # These can only be used under linux and maybe freebsd. They allow to compile for the gp2x or to create a windows binary
     ifdef WIN32CROSS
       #cross compile a Win32 executable
@@ -320,12 +325,12 @@ else
 	LUALOPT = -llua
         OBJDIR = ../obj/m68k-atari-mint
         PLATFORM = m68k-atari-mint
-        STRIP = m68k-atari-mint-strip -s 
+        STRIP = m68k-atari-mint-strip -s
 	STACK = m68k-atari-mint-stack
 	FIX_FLAGS = m68k-atari-mint-flags
-	FCLOPT = 
+	FCLOPT =
 	COPT = -W -Wall -m68020-60 -fomit-frame-pointer -std=c99 -Wdeclaration-after-statement -D__MINT__ -ffast-math -O$(OPTIM) -c -I$(prefix)/include `$(prefix)/bin/libpng12-config --cflags` `$(prefix)/bin/sdl2-config --cflags` $(JOYCOPT) $(LUACOPT)
-    	LOPT = -static -m68020-60 -lSDL2_image `$(prefix)/bin/sdl2-config --libs` -L$(prefix)/lib -ltiff -ljpeg `$(prefix)/bin/libpng12-config --libs` -lz -lm $(TTFLOPT) -lfreetype $(LUALOPT) -lm $(LAYERLOPT) -Wl,--stack,8k 
+    	LOPT = -static -m68020-60 -lSDL2_image `$(prefix)/bin/sdl2-config --libs` -L$(prefix)/lib -ltiff -ljpeg `$(prefix)/bin/libpng12-config --libs` -lz -lm $(TTFLOPT) -lfreetype $(LUALOPT) -lm $(LAYERLOPT) -Wl,--stack,8k
       else
 
         # Compiles a regular linux executable for the native platform
@@ -352,7 +357,7 @@ else
   endif
 endif
 
-### BUILD SETTINGS are set according to vars set in the platform selection, 
+### BUILD SETTINGS are set according to vars set in the platform selection,
 ### the "overridable defaults", and environment variables set before launching make
 
 #TrueType is optional: make NOTTF=1 to disable support and dependencies.
@@ -363,10 +368,10 @@ ifndef ($(ATARICROSS,1))
    TTFLIBS =
    TTFLABEL = -nottf
  else
-   TTFCOPT = 
+   TTFCOPT =
    TTFLOPT = -L$(prefix)/lib -lSDL2_ttf $(FCLOPT)
    TTFLIBS = bin/libfreetype-6.dll bin/SDL2_ttf.dll
-   TTFLABEL = 
+   TTFLABEL =
  endif
 else
  ifeq ($(NOTTF),1)
@@ -375,10 +380,10 @@ else
    TTFLIBS =
    TTFLABEL = -nottf
  else
-   TTFCOPT = 
+   TTFCOPT =
    TTFLOPT = -L$(prefix)/lib -lSDL2_ttf $(FCLOPT)
-   TTFLIBS =  
-   TTFLABEL = 
+   TTFLIBS =
+   TTFLABEL =
  endif
 endif
 
@@ -443,12 +448,12 @@ $(MACAPPEXE) : $(BIN)
 	cp -r ../share/grafx2/scripts/samples_2.4/palette Grafx2.app/Contents/Resources/scripts/samples_2.4
 	cp -r ../share/grafx2/scripts/samples_2.4/picture Grafx2.app/Contents/Resources/scripts/samples_2.4
 	mkdir -p Grafx2.app/Contents/Frameworks/Lua.framework/Versions
-	mkdir -p Grafx2.app/Contents/Frameworks/libpng16.framework/Versions
-	mkdir -p Grafx2.app/Contents/Frameworks/SDL.framework/Versions
+	mkdir -p Grafx2.app/Contents/Frameworks/libpng14.framework/Versions
+	mkdir -p Grafx2.app/Contents/Frameworks/SDL2.framework/Versions
 	mkdir -p Grafx2.app/Contents/Frameworks/SDL2_image.framework/Versions
 #	mkdir -p Grafx2.app/Contents/Frameworks/SDL_ttf.framework/Versions
 	cp -Rp $(FWDIR)/Lua.framework/Versions/A Grafx2.app/Contents/Frameworks/Lua.framework/Versions
-	cp -Rp $(FWDIR)/libpng16.framework/Versions/1.6.26 Grafx2.app/Contents/Frameworks/libpng16.framework/Versions
+	cp -Rp $(FWDIR)/libpng12.framework/Versions/1.6.26 Grafx2.app/Contents/Frameworks/libpng12.framework/Versions
 	cp -Rp $(FWDIR)/SDL.framework/Versions/A Grafx2.app/Contents/Frameworks/SDL.framework/Versions
 	cp -Rp $(FWDIR)/SDL2_image.framework/Versions/A Grafx2.app/Contents/Frameworks/SDL2_image.framework/Versions
 #	cp -Rp $(FWDIR)/SDL_ttf.framework/Versions/A Grafx2.app/Contents/Frameworks/SDL_ttf.framework/Versions
@@ -459,20 +464,20 @@ $(MACAPPEXE) : $(BIN)
 	rm -fr Grafx2.app/Contents/Frameworks/SDL2_image.framework/Versions/A/Resources
 	rm -fr Grafx2.app/Contents/Frameworks/Lua.framework/Versions/A/Resources
 	rm -fr Grafx2.app/Contents/Frameworks/Lua.framework/Versions/A/Headers
-	rm -fr Grafx2.app/Contents/Frameworks/libpng16.framework/Versions/1.4.8/Resources
-	rm -fr Grafx2.app/Contents/Frameworks/libpng16.framework/Versions/1.4.8/Headers
+	rm -fr Grafx2.app/Contents/Frameworks/libpng12.framework/Versions/1.2.8/Resources
+	rm -fr Grafx2.app/Contents/Frameworks/libpng12.framework/Versions/1.2.8/Headers
 	rm -fr Grafx2.app/Contents/Frameworks/SDL_ttf.framework/Versions
 	cp $(BIN) $(MACAPPEXE)
 	$(STRIP) -x -X -S $(MACAPPEXE)
 	chmod +x $(MACAPPEXE)
-	tar cvzf grafx2-svn$(SVN_REVISION)-macosx.tgz --exclude '*svn*' --exclude '*DS_Store*' Grafx2.app/*
+	tar cvzf grafx2-svn$(SVN_REVISION)-macos.tgz --exclude '*svn*' --exclude '*DS_Store*' Grafx2.app/*
 else
 all : $(BIN)
 ifeq ($(ATARICROSS),1)
 	$(STACK) -S 128k $(BIN)
 	$(FIX_FLAGS) -S $(BIN)
 else
-ifeq ($(PLATFORM),FreeMiNT)  
+ifeq ($(PLATFORM),FreeMiNT)
 	$(STACK) -S 128k $(BIN)
 	$(FIX_FLAGS) -S $(BIN)
 endif
@@ -485,7 +490,7 @@ ifeq ($(ATARICROSS),1)
 	$(STACK) -S 128k $(BIN)
 	$(FIX_FLAGS) -S $(BIN)
 else
-ifeq ($(PLATFORM),FreeMiNT)  
+ifeq ($(PLATFORM),FreeMiNT)
 	$(STACK) -S 128k $(BIN)
 	$(FIX_FLAGS) -S $(BIN)
 endif
@@ -509,9 +514,9 @@ $(BIN) : $(OBJ)
 	test -d ../bin || $(MKDIR) ../bin
 	$(CC) $(OBJ) -o $(BIN) $(LOPT) $(LFLAGS)
 
-# SVN revision number
+# GIT revision
 version.c :
-	echo "char SVN_revision[]=\"`svnversion .`\";" > version.c
+	printf "char SVN_revision[]=\"r%s.%s\";" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)" > version.c
 ifeq ($(LABEL),)
 else
 	echo "char Program_version[]=\"$(LABEL)\";" > pversion.c
@@ -522,7 +527,7 @@ version : delversion delpversion version.c pversion.c $(OBJDIR)/version.o $(OBJD
 
 delversion :
 	$(DELCOMMAND) version.c
-	
+
 delpversion :
 ifeq ($(LABEL),)
 else
@@ -571,7 +576,7 @@ install : $(BIN)
 	test -d $(DESTDIR)$(datadir)/grafx2/scripts/samples_2.4/picture || $(MKDIR) $(DESTDIR)$(datadir)/grafx2/scripts/samples_2.4/picture
 	test -d $(DESTDIR)$(datadir)/applications || $(MKDIR) $(DESTDIR)$(datadir)/applications
 	test -d $(DESTDIR)$(pixmapdir) || $(MKDIR) $(DESTDIR)$(pixmapdir)
-	
+
 	# Copy files
 	$(CP) $(BIN) $(DESTDIR)$(bindir)
 	$(CP) ../share/grafx2/gfx2def.ini $(DESTDIR)$(datadir)/grafx2/
@@ -584,7 +589,7 @@ install : $(BIN)
 	$(CP) ../misc/unix/grafx2.xpm $(DESTDIR)$(pixmapdir)
 	$(CP) ../share/icons/grafx2.svg $(DESTDIR)$(pixmapdir)
 	@echo Install complete
-  
+
 # Linux uninstallation of the program
 uninstall :
 	$(DELCOMMAND) $(DESTDIR)$(bindir)/grafx2

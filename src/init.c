@@ -34,7 +34,7 @@
   #include <proto/dos.h>
 #endif
 
-#include <stdio.h>
+//#include <stdio.h>
 //#include <fcntl.h>
 #include <string.h>
 
@@ -2764,7 +2764,7 @@ void Set_config_defaults(void)
 
 #if defined(__WIN32__)
   #define SIGHANDLER_T __p_sig_fn_t
-#elif defined(__macosx__)
+#elif defined(__macos__)
   typedef void (*sig_t) (int);
   #define SIGHANDLER_T sig_t
 #else

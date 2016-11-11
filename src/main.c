@@ -28,10 +28,10 @@
 #ifdef __amigaos__
   #include <devices/timer.h>
 #else
-  #include <time.h>
+//  #include <time.h>
 #endif
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -76,7 +76,7 @@
     #define chdir(dir) SetCurrentDirectory(dir)
 #elif defined (__MINT__)
     #include <mint/osbind.h>
-#elif defined(__macosx__)
+#elif defined(__macos__)
     #import <corefoundation/corefoundation.h>
     #import <sys/param.h>
 #elif defined(__FreeBSD__)
