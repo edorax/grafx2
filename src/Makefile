@@ -32,18 +32,11 @@
 # Compile with OPTIM=0 to disable gcc optimizations, to enable debug.
   STRIP = strip
 
-### Specific to build MAC OS X universal binaries on Tiger or Lion ###
-### (may need to be changed or removed depending on the OSX version) ###
+### Specific to build macOS universal binaries on Tiger or Lion ###
+### (may need to be changed or removed depending on the macOS version) ###
 
-#MACOSX_LION = 1
-
-ifdef MACOSX_LION
 MACOSX_SYSROOT = /Developer/SDKs/MacOSX10.6.sdk
 MACOSX_ARCH = -arch x86_64 -arch i386
-else
-MACOSX_SYSROOT = /Developer/SDKs/MacOSX10.4u.sdk
-MACOSX_ARCH = -arch ppc -arch i386
-endif
 
 ### PLATFORM DETECTION AND CONFIGURATION ###
 
@@ -91,7 +84,7 @@ else
 
   else
   ifeq ($(PLATFORM),Darwin) # 2
-    #Mac OS X specific
+    # macOS specific
     DELCOMMAND = rm -rf
     MKDIR = mkdir -p
     RMDIR = rmdir --ignore-fail-on-non-empty
@@ -105,30 +98,22 @@ else
     BIN = ../bin/grafx2
     SVN_REVISION = $(shell svnversion | cut -f2 -d ":" - | tr -d "M")
 
-    # these are for use with macports
-    #SDLCOPT = $(shell sdl2-config --cflags)
-    #SDLLOPT = $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_image)
-    #LUACOPT = $(shell pkg-config lua --cflags --silence-errors ||pkg-config lua5.1 --cflags --silence-errors ||pkg-config lua-5.1 --cflags)
-    #LUALOPT = $(shell pkg-config lua --libs --silence-errors ||pkg-config lua5.1 --libs --silence-errors ||pkg-config lua-5.1 --libs)
+    # these are for use with homebrew
+    SDLCOPT = $(shell sdl2-config --cflags)
+    SDLLOPT = $(shell sdl2-config --libs) $(shell pkg-config --libs SDL2_image) -I/usr/local/include
+    LUACOPT = $(shell pkg-config lua --cflags --silence-errors ||pkg-config lua5.2 --cflags --silence-errors ||pkg-config lua-5.2 --cflags)
+    LUALOPT = $(shell pkg-config lua --libs --silence-errors ||pkg-config lua5.2 --libs --silence-errors ||pkg-config lua-5.2 --libs)
 
-    # these are for use with Mac OS X native frameworks
+    # these are for use with macOS native frameworks
     #-framework SDL_ttf 
-    SDLLOPT = -isysroot $(MACOSX_SYSROOT) $(MACOSX_ARCH) -L/usr/lib -framework SDL -framework SDL2_image -framework Cocoa -framework Carbon -framework OpenGL
-    SDLCOPT = $(MACOSX_ARCH) -I$(FWDIR)/SDL.framework/Headers -I$(FWDIR)/SDL2_image.framework/Headers -I$(FWDIR)/SDL_ttf.framework/Headers -D_THREAD_SAFE
-    LUACOPT = -I$(FWDIR)/Lua.framework/Headers
-ifdef MACOSX_LION
-    LUALOPT = -framework lua
-else
-    LUALOPT = -llua 
-endif
+    #SDLLOPT = -isysroot $(MACOSX_SYSROOT) $(MACOSX_ARCH) -L/usr/lib -framework SDL -framework SDL2_image -framework Cocoa -framework Carbon -framework OpenGL
+    #SDLCOPT = $(MACOSX_ARCH) -I$(FWDIR)/SDL.framework/Headers -I$(FWDIR)/SDL2_image.framework/Headers -I$(FWDIR)/SDL_ttf.framework/Headers -D_THREAD_SAFE
+    #LUACOPT = -I$(FWDIR)/Lua.framework/Headers
+    #LUALOPT = -framework lua
 
     # these are for everyone
-    COPT = -D_DARWIN_C_SOURCE -D__macosx__ -D__linux__ -W -Wall -Wdeclaration-after-statement -O$(OPTIM) -std=c99 -c -g $(LUACOPT) $(SDLCOPT) $(TTFCOPT) -I/usr/include
-ifdef MACOSX_LION
-    LOPT = $(SDLLOPT) $(LUALOPT) -framework libpng14 -lz
-else
-    LOPT = $(SDLLOPT) $(LUALOPT) -lpng -lz
-endif
+    COPT = -D_DARWIN_C_SOURCE -D__macosx__ -D__linux__ -W -Wall -Wdeclaration-after-statement -O$(OPTIM) -std=c99 -c -g $(LUACOPT) $(SDLCOPT) $(TTFCOPT) -I/usr/include -I/usr/local/include
+    LOPT = $(SDLLOPT) $(LUALOPT) -framework libpng16 -lz
     # Use gcc for compiling. Use ncc to build a callgraph and analyze the code.
     CC = gcc
     #CC = nccgen -ncgcc -ncld -ncfabs
@@ -286,8 +271,8 @@ endif
         LUACOPT =
         LUALOPT =
       else
-        LUACOPT = $(shell pkg-config lua --cflags --silence-errors ||pkg-config lua5.1 --cflags --silence-errors ||pkg-config lua-5.1 --cflags)
-        LUALOPT = $(shell pkg-config lua --libs --silence-errors ||pkg-config lua5.1 --libs --silence-errors ||pkg-config lua-5.1 --libs)
+        LUACOPT = $(shell pkg-config lua --cflags --silence-errors ||pkg-config lua5.2 --cflags --silence-errors ||pkg-config lua-5.2 --cflags)
+        LUALOPT = $(shell pkg-config lua --libs --silence-errors ||pkg-config lua5.2 --libs --silence-errors ||pkg-config lua-5.2 --libs)
       endif
     endif
     
@@ -457,17 +442,13 @@ $(MACAPPEXE) : $(BIN)
 	cp -r ../share/grafx2/scripts/samples_2.4/libs Grafx2.app/Contents/Resources/scripts/samples_2.4
 	cp -r ../share/grafx2/scripts/samples_2.4/palette Grafx2.app/Contents/Resources/scripts/samples_2.4
 	cp -r ../share/grafx2/scripts/samples_2.4/picture Grafx2.app/Contents/Resources/scripts/samples_2.4
-ifdef MACOSX_LION
 	mkdir -p Grafx2.app/Contents/Frameworks/Lua.framework/Versions
-	mkdir -p Grafx2.app/Contents/Frameworks/libpng14.framework/Versions
-endif
+	mkdir -p Grafx2.app/Contents/Frameworks/libpng16.framework/Versions
 	mkdir -p Grafx2.app/Contents/Frameworks/SDL.framework/Versions
 	mkdir -p Grafx2.app/Contents/Frameworks/SDL2_image.framework/Versions
 #	mkdir -p Grafx2.app/Contents/Frameworks/SDL_ttf.framework/Versions
-ifdef MACOSX_LION
 	cp -Rp $(FWDIR)/Lua.framework/Versions/A Grafx2.app/Contents/Frameworks/Lua.framework/Versions
-	cp -Rp $(FWDIR)/libpng14.framework/Versions/1.4.8 Grafx2.app/Contents/Frameworks/libpng14.framework/Versions
-endif
+	cp -Rp $(FWDIR)/libpng16.framework/Versions/1.6.26 Grafx2.app/Contents/Frameworks/libpng16.framework/Versions
 	cp -Rp $(FWDIR)/SDL.framework/Versions/A Grafx2.app/Contents/Frameworks/SDL.framework/Versions
 	cp -Rp $(FWDIR)/SDL2_image.framework/Versions/A Grafx2.app/Contents/Frameworks/SDL2_image.framework/Versions
 #	cp -Rp $(FWDIR)/SDL_ttf.framework/Versions/A Grafx2.app/Contents/Frameworks/SDL_ttf.framework/Versions
@@ -476,13 +457,11 @@ endif
 	rm -fr Grafx2.app/Contents/Frameworks/SDL.framework/Versions/A/Resources
 	rm -fr Grafx2.app/Contents/Frameworks/SDL2_image.framework/Versions/A/Headers
 	rm -fr Grafx2.app/Contents/Frameworks/SDL2_image.framework/Versions/A/Resources
-ifdef MACOSX_LION
 	rm -fr Grafx2.app/Contents/Frameworks/Lua.framework/Versions/A/Resources
 	rm -fr Grafx2.app/Contents/Frameworks/Lua.framework/Versions/A/Headers
-	rm -fr Grafx2.app/Contents/Frameworks/libpng14.framework/Versions/1.4.8/Resources
-	rm -fr Grafx2.app/Contents/Frameworks/libpng14.framework/Versions/1.4.8/Headers
+	rm -fr Grafx2.app/Contents/Frameworks/libpng16.framework/Versions/1.4.8/Resources
+	rm -fr Grafx2.app/Contents/Frameworks/libpng16.framework/Versions/1.4.8/Headers
 	rm -fr Grafx2.app/Contents/Frameworks/SDL_ttf.framework/Versions
-endif
 	cp $(BIN) $(MACAPPEXE)
 	$(STRIP) -x -X -S $(MACAPPEXE)
 	chmod +x $(MACAPPEXE)
