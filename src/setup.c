@@ -2,6 +2,7 @@
 */
 /*  Grafx2 - The Ultimate 256-color bitmap paint program
 
+    Copyright 2014 Sergii Pylypenko
     Copyright 2011 Pawel Góralski
     Copyright 2008 Peter Gordon
     Copyright 2008 Yves Rizoud
@@ -42,6 +43,8 @@
 #elif defined(__linux__)
   #include <limits.h>
   #include <unistd.h>
+#elif defined(__HAIKU__)
+  #include <FindDirectory.h>
 #endif
 
 #include "struct.h"
@@ -92,6 +95,9 @@ void Set_program_directory(const char * argv0,char * program_dir)
   sprintf(program_dir,"%c:\%s",currentDrive,path);
   // Append trailing slash
   strcat(program_dir,PATH_SEPARATOR);
+  #elif defined(__ANDROID__)
+  getcwd(program_dir, MAX_PATH_CHARACTERS);
+  strcat(program_dir, "/");
   // Linux: argv[0] unreliable
   #elif defined(__linux__)
   if (argv0[0]!='/')
@@ -122,7 +128,7 @@ void Set_data_directory(const char * program_dir, char * data_dir)
   #if defined(__macosx__)
     strcat(data_dir,"Contents/Resources/");
   // On GP2X, executable is not in bin/
-  #elif defined (__GP2X__) || defined (__gp2x__) || defined (__WIZ__) || defined (__CAANOO__)
+  #elif defined (__GP2X__) || defined (__gp2x__) || defined (__WIZ__) || defined (__CAANOO__) || defined(__ANDROID__)
     strcat(data_dir,"share/grafx2/");
   //on tos the same directory
   #elif defined (__MINT__)
@@ -178,9 +184,14 @@ void Set_config_directory(const char * program_dir, char * config_dir)
         const char* Config_SubDir = "GrafX2";
         config_parent_dir = getenv("APPDATA");
       #elif defined(__BEOS__) || defined(__HAIKU__)
-        // "~/.grafx2", the BeOS way
-        const char* Config_SubDir = ".grafx2";
-        config_parent_dir = getenv("$HOME");
+        // "`finddir B_USER_SETTINGS_DIRECTORY`/grafx2"
+        const char* Config_SubDir = "grafx2";
+        {
+          static char parent[MAX_PATH_CHARACTERS];
+          find_directory(B_USER_SETTINGS_DIRECTORY, 0, false, parent,
+            MAX_PATH_CHARACTERS);
+          config_parent_dir = parent;
+        }
       #elif defined(__macosx__)
         // "~/Library/Preferences/com.googlecode.grafx2"
         const char* Config_SubDir = "Library/Preferences/com.googlecode.grafx2";
@@ -190,14 +201,9 @@ void Set_config_directory(const char * program_dir, char * config_dir)
          printf("GFX2.CFG not found in %s\n",filename);
          strcpy(config_parent_dir, config_dir);
       #else
-        // First try "$XDG_CONFIG_HOME/grafx2", then fall back to "~/.config/grafx2"      
-        const char* Config_SubDir = "grafx2";
-        config_parent_dir = getenv("XDG_CONFIG_HOME");
-	if (!config_parent_dir)
-	{
-		config_parent_dir = getenv("HOME");
-		strcat(config_parent_dir, ".config");
-	}
+        // "~/.grafx2"      
+        const char* Config_SubDir = ".grafx2";
+        config_parent_dir = getenv("HOME");
       #endif
 
       if (config_parent_dir && config_parent_dir[0]!='\0')

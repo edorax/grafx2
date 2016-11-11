@@ -26,24 +26,22 @@
 /// in grafx2.
 /// The keycode we're using is generalized to handle mouse and joystick shortcuts
 /// as well. The format can be broken down as:
-/// - 0x0000 + a number between 0 and SDLK_LAST (about 324) : the SDL "sym" key number.
-/// - 0x0000 + SDLK_LAST+1: Mouse middle button.
-/// - 0x0000 + SDLK_LAST+2: Mouse wheel up.
-/// - 0x0000 + SDLK_LAST+3: Mouse wheel down.
-/// - 0x0000 + SDLK_LAST+4+B : Joystick button number "B", starting at B=0.
-/// - 0x0800 + a number between 0 and 0x7FF: The scancode key number, for keys which have no "sym", such as keys from multimedia keyboards, and "fn" and "Thinkpad" key for a laptop.
+/// - 0x0000 + 00-FF : The SDL "sym" key number, for SDLK_ values less than 256
+/// - 0x0800 + 000-1FF: The SDL key number based on scancode
+/// - 0x0100 + N : Joystick button N
+/// - 0x0200 : Mouse wheel up
+/// - 0x0201 : Mouse wheel down
+/// - 0x0202 : Mouse wheel left
+/// - 0x0203 : Mouse wheel right
+/// - 0x0210 : Mouse middle
+/// - 0x0211 : Mouse x1
+/// - 0x0212 : Mouse x2
+/// - 0x0400 + 00 to FF : Joystick button N
 /// Add 0x1000 for the Shift modifier MOD_SHIFT
 /// Add 0x2000 for the Control modifier ::MOD_CONTROL
 /// Add 0x4000 for the Alt modifier ::MOD_ALT
 /// Add 0x8000 for the "Meta" modifier ::MOD_META (On MacOS X it's the CMD key)
 //////////////////////////////////////////////////////////////////////////////
-
-/*!
-  Convert an SDL keysym to an ANSI/ASCII character.
-  This is used to type text and numeric values in input boxes.
-  @param keysym SDL symbol to convert
-*/
-word Keysym_to_ANSI(SDL_keysym keysym);
 
 /*!
   Convert an SDL keysym to an internal keycode number.
@@ -52,7 +50,7 @@ word Keysym_to_ANSI(SDL_keysym keysym);
   See the notice at the beginning of keyboard.h for the format of a keycode.
   @param keysym SDL symbol to convert
 */
-word Keysym_to_keycode(SDL_keysym keysym);
+word Keysym_to_keycode(SDL_Keysym keysym);
 
 /*!
     Helper function to convert between SDL system and the old coding for PC keycodes.
@@ -73,5 +71,12 @@ const char * Key_name(word key);
   Returns a combination of ::MOD_SHIFT, ::MOD_ALT, ::MOD_CONTROL
   @param mod SDL modifiers state
 */
-word Key_modifiers(SDLMod mod);
+word Key_modifiers(SDL_Keymod mod);
+
+///
+/// Get the first unicode character at the begininng of an UTF-8 string.
+/// The character is written to 'character', and the function returns a
+/// pointer to the next character. If an invalid utf-8 sequence is found,
+/// the function returns NULL - it's unsafe to keep parsing from this point.
+const char * Parse_utf8_string(const char * str, word *character);
 

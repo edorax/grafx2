@@ -2,6 +2,7 @@
 */
 /*  Grafx2 - The Ultimate 256-color bitmap paint program
 
+    Copyright 2014 Sergii Pylypenko
     Copyright 2011 Pawel Góralski
     Copyright 2008 Yves Rizoud
     Copyright 2007 Adrien Destugues
@@ -27,6 +28,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #ifndef _STRUCT_H_
 #define _STRUCT_H_
+
+#include <SDL.h>
 
 #if defined(__BEOS__) || defined(__TRU64__)
     #include <inttypes.h>
@@ -56,21 +59,9 @@ typedef uint64_t qword;
 // GrafX2 use a lot of function pointer to do the drawing depending in the "fake hardware zoom" and the magnifier status.
 typedef void (* Func_action)    (void); ///< An action. Used when you click a menu button or trigger a keyboard shortcut.
 typedef void (* Func_pixel) (word,word,byte); ///< Set pixel at position (x,y) to color c. Used in load screen to write the data to brush, picture, or preview area.
-typedef byte (* Func_read)   (word,word); ///< Read a pixel at position (x,y) on something. Used for example in save to tell if the data is a brush or a picture
-typedef void (* Func_clear)  (byte);
-typedef void (* Func_display)   (word,word,word);
 typedef byte (* Func_effect)     (word,word,byte); ///< Called by all drawing tools to draw with a special effect (smooth, transparency, shade, ...)
-typedef void (* Func_block)     (word,word,word,word,byte);
-typedef void (* Func_line_XOR) (word,word,word); ///< Draw an XOR line on the picture view of the screen. Use a different function when in magnify mode.
-typedef void (* Func_display_brush_color) (word,word,word,word,word,word,byte,word);
-typedef void (* Func_display_brush_mono)  (word,word,word,word,word,word,byte,byte,word);
 typedef void (* Func_gradient)   (long,short,short);
-typedef void (* Func_remap)     (word,word,word,word,byte *);
 typedef void (* Func_procsline) (word,word,word,byte *);
-typedef void (* Func_display_zoom) (word,word,word,byte *);
-typedef void (* Func_display_brush_color_zoom) (word,word,word,word,word,word,byte,word,byte *);
-typedef void (* Func_display_brush_mono_zoom)  (word,word,word,word,word,word,byte,byte,word,byte *);
-typedef void (* Func_draw_brush) (byte *,word,word,word,word,word,word,byte,word);
 typedef void (* Func_draw_list_item) (word,word,word,byte); ///< Draw an item inside a list button. This is done with a callback so it is possible to draw anything, as the list itself doesn't handle the content
 
 /// A set of RGB values.
@@ -173,13 +164,13 @@ typedef struct T_Dropdown_button
 /// Data for one item (file, directory) in a fileselector.
 typedef struct T_Fileselector_item
 {
-  char Full_name[256]; ///< Filesystem value.
+  char Full_name[MAX_PATH_CHARACTERS]; ///< Filesystem value.
   byte Type;           ///< Type of item: 0 = File, 1 = Directory, 2 = Drive
   byte Icon;           ///< One of ::ICON_TYPES, ICON_NONE for none.
 
   struct T_Fileselector_item * Next;    ///< Pointer to next item of the current fileselector.
   struct T_Fileselector_item * Previous;///< Pointer to previous item of the current fileselector.
-  
+
   word  Length_short_name; ///< Number of bytes allocated for :Short_name
   #if __GNUC__ < 3
   char Short_name[0]; ///< Name to display.
@@ -214,7 +205,7 @@ typedef struct T_List_button
 
   T_Special_button  * Entry_button; ///< Pointer to the associated selection control.
   T_Scroller_button * Scroller;     ///< Pointer to the associated scroller
-  
+
   Func_draw_list_item   Draw_list_item; ///< Function to call for each item to draw its line
   byte                  Color_index;    ///< Background color: From 0->MC_Black to 3->MC_White
 
@@ -238,6 +229,10 @@ typedef struct
   int Attribute1;
   int Attribute2;
   byte Draggable;
+  SDL_Texture *Texture;
+#ifdef MULTI_WINDOW
+  SDL_Window* Handle;
+#endif
 } T_Window;
 
 /// Data for one line of the "Help" screens.
@@ -285,7 +280,7 @@ typedef struct
 {
   byte State; ///< How good is the mode supported. 0:Good (white) 1:OK (light) 2:So-so (dark) 4:User-disabled (black); +128 => System doesn't support it at all.
   word Width; ///< Videomode width in pixels.
-  word Height;///< Videomode height in pixels. 
+  word Height;///< Videomode height in pixels.
 } T_Config_video_mode;
 
 /// Header for gfx2.cfg
@@ -310,8 +305,8 @@ typedef struct
 typedef struct
 {
   word Number; ///< Indicates the shortcut action. This is a number starting from 0, which matches ::T_Key_config.Number
-  word Key;    ///< Keyboard shortcut: SDLK_something, or -1 for none
-  word Key2;   ///< Alternate keyboard shortcut: SDLK_something, or -1 for none
+  word Key;    ///< Keyboard shortcut: K2K(SDLK_Something, or -1 for none
+  word Key2;   ///< Alternate keyboard shortcut: K2K(SDLK_Something, or -1 for none
 } T_Config_shortcut_info;
 
 
@@ -442,7 +437,7 @@ typedef struct
 typedef struct
 {
   byte Paintbrush_shape; ///< Kind of brush
-  byte Thumbnail[BRUSH_CONTAINER_PREVIEW_WIDTH][BRUSH_CONTAINER_PREVIEW_HEIGHT]; 
+  byte Thumbnail[BRUSH_CONTAINER_PREVIEW_WIDTH][BRUSH_CONTAINER_PREVIEW_HEIGHT];
   // Data for color brush
   word Width;
   word Height;
@@ -455,57 +450,55 @@ typedef struct
 /// GUI skin data
 typedef struct
 {
+  /// Scaling factor: 1 for skin designed for 8px font, 2 for 16px font, etc.
+  int Factor;
+
   // Mouse
-  
-  /// X coordinate of the mouse cursor's "hot spot". It is < ::CURSOR_SPRITE_WIDTH
-  word Cursor_offset_X[NB_CURSOR_SPRITES];
-  /// Y coordinate of the mouse cursor's "hot spot". It is < ::CURSOR_SPRITE_HEIGHT
-  word Cursor_offset_Y[NB_CURSOR_SPRITES];
-  /// Graphic resources for the mouse cursor.
-  byte Cursor_sprite[NB_CURSOR_SPRITES][CURSOR_SPRITE_HEIGHT][CURSOR_SPRITE_WIDTH];
+  SDL_Texture *Mouse_cursor[NB_CURSOR_SPRITES];
+  int Mouse_cursor_width[NB_CURSOR_SPRITES];
+  int Mouse_cursor_height[NB_CURSOR_SPRITES];
 
   // Sieve patterns
-  
+
   /// Preset sieve patterns, stored as binary (one word per line)
   word  Sieve_pattern[12][16];
-  
+
   // Menu and other graphics
-  
+
   /// Bitmap data for the menu, a single rectangle.
-  byte Menu_block[3][35][MENU_WIDTH];
-  byte Layerbar_block[3][10][144];
-  byte Animbar_block[3][14][236];
-  byte Statusbar_block[3][9][20];
+  byte Menu_block[35][MENU_WIDTH];
+  byte Layerbar_block[10][144];
+  byte Animbar_block[14][236];
+  byte Statusbar_block[9][20];
   /// Bitmap data for the icons that are displayed over the menu.
-  byte Menu_sprite[2][NB_MENU_SPRITES][MENU_SPRITE_HEIGHT][MENU_SPRITE_WIDTH];
+  SDL_Texture *Menu_sprite[2][NB_MENU_SPRITES];
   /// Bitmap data for the different "effects" icons.
-  byte Effect_sprite[NB_EFFECTS_SPRITES][EFFECT_SPRITE_HEIGHT][EFFECT_SPRITE_WIDTH];
+  SDL_Texture *Effect_sprite[NB_EFFECTS_SPRITES];
   /// Bitmap data for the different Layer icons.
   byte Layer_sprite[3][16][LAYER_SPRITE_HEIGHT][LAYER_SPRITE_WIDTH];
   /// Bitmap data for the Grafx2 logo that appears on splash screen. All 256 colors allowed.
-  byte Logo_grafx2[231*56];
+  SDL_Texture *Logo_grafx2;
+  /// Square font used everywhere
+  SDL_Texture *Font[256];
   /// Bitmap data for the 6x8 font used in help screens.
-  byte Help_font_norm [256][6][8];
+  SDL_Texture *Help_font_norm[256];
   /// Bitmap data for the 6x8 font used in help screens ("bold" verstion).
-  byte Bold_font [256][6][8];
+  SDL_Texture *Help_font_bold [256];
   // 12
   // 34
   /// Bitmap data for the title font used in help screens. Top-left quarter.
-  byte Help_font_t1 [64][6][8];
+  SDL_Texture *Help_font_t1 [64];
   /// Bitmap data for the title font used in help screens. Top-right quarter.
-  byte Help_font_t2 [64][6][8];
+  SDL_Texture *Help_font_t2 [64];
   /// Bitmap data for the title font used in help screens. Bottom-left quarter.
-  byte Help_font_t3 [64][6][8];
+  SDL_Texture *Help_font_t3 [64];
   /// Bitmap data for the title font used in help screens. Bottom-right quarter.
-  byte Help_font_t4 [64][6][8];
+  SDL_Texture *Help_font_t4 [64];
   /// Bitmap data for the small 8x8 icons.
-  byte Icon_sprite[NB_ICON_SPRITES][ICON_SPRITE_HEIGHT][ICON_SPRITE_WIDTH];
+  SDL_Texture *Icon_sprite[NB_ICON_SPRITES];
 
   /// A default 256-color palette.
   T_Palette Default_palette;
-
-  /// Preview for displaying in the skin dialog
-  byte Preview[16][173];
 
   /// GUI color indices in skin palette: black, dark, light, white.
   byte Color[4];
@@ -516,7 +509,7 @@ typedef struct
 
 typedef struct {
   // Preset paintbrushes
-  
+
   /// Graphic resources for the preset paintbrushes.
   byte  Sprite[PAINTBRUSH_HEIGHT][PAINTBRUSH_WIDTH];
   /// Width of the preset paintbrushes.
@@ -545,7 +538,7 @@ typedef struct T_Selector_settings
   byte Format_filter; ///< 0 for "*.*", or a value of enum ::FILE_FORMATS
   short Position; ///< Index of the first file/entry to display in list
   short Offset; ///< Position of the "highlight" bar in the file list
-  char  Directory[256]; ///< Directory currently browsed
+  char  Directory[MAX_PATH_CHARACTERS]; ///< Directory currently browsed
 } T_Selector_settings;
 
 #endif

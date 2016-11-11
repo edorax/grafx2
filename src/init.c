@@ -23,8 +23,6 @@
     along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 */
 
-#define _XOPEN_SOURCE 500
-
 // Signal handler: I activate it for the two platforms who certainly
 // support them. Feel free to check with others.
 #if defined(__WIN32__) || defined(__linux__)
@@ -46,13 +44,10 @@
 
 #include <stdlib.h>
 #include <errno.h>
-#include <SDL_byteorder.h>
+#include <SDL2/SDL.h>
 #include <SDL_image.h>
 #if defined(__WIN32__)
   #include <windows.h> // GetLogicalDrives(), GetDriveType(), DRIVE_*
-#endif
-#ifndef __GP2X__
-    #include <SDL_syswm.h>
 #endif
 #if defined (__MINT__)
   #include <mint/osbind.h>
@@ -84,6 +79,7 @@
 #include "windows.h"
 #include "layers.h"
 #include "special.h"
+#include "sdlscreen.h"
 
 char Gui_loading_error_message[512];
 
@@ -110,7 +106,7 @@ byte GUI_seek_down(SDL_Surface *gui, int *start_x, int *start_y, byte neutral_co
     }
     y++;
   } while (y<gui->h);
-  
+
   sprintf(Gui_loading_error_message, "Error in skin file: Was looking down from %d,%d for a '%s', and reached the end of the image\n",
     *start_x, *start_y, section);
   return 1;
@@ -121,7 +117,7 @@ byte GUI_seek_right(SDL_Surface *gui, int *start_x, int start_y, byte neutral_co
   byte color;
   int x;
   x=*start_x;
-  
+
   do
   {
     color=Get_SDL_pixel_8(gui,x,start_y);
@@ -132,10 +128,23 @@ byte GUI_seek_right(SDL_Surface *gui, int *start_x, int start_y, byte neutral_co
     }
     x++;
   } while (x<gui->w);
-  
-  sprintf(Gui_loading_error_message, "Error in skin file: Was looking right from %d,%d for a '%s', and reached the edege of the image\n",
+
+  sprintf(Gui_loading_error_message, "Error in skin file: Was looking right from %d,%d for a '%s', and reached the edge of the image\n",
     *start_x, start_y, section);
   return 1;
+}
+
+
+void GUI_seek_discover(SDL_Surface *gui, int start_x, int start_y, int *width, int *height, byte neutral_color)
+{
+  *width=0;
+  *height=0;
+  do
+    *width=*width+1;
+  while(start_x + *width <= gui->w && Get_SDL_pixel_8(gui, start_x + *width, start_y) != neutral_color);
+  do
+    *height=*height+1;
+  while(start_y + *height <= gui->h && Get_SDL_pixel_8(gui, start_x, start_y + *height) != neutral_color);
 }
 
 byte Read_GUI_block(T_Gui_skin *gfx, SDL_Surface *gui, int start_x, int start_y, void *dest, int width, int height, char * section, int type)
@@ -144,7 +153,7 @@ byte Read_GUI_block(T_Gui_skin *gfx, SDL_Surface *gui, int start_x, int start_y,
   // type: 1 = mouse cursor, 4 colors allowed + transparent
   // type: 2 = brush icon or sieve pattern (only gui->Color[3] and gui->Color_trans)
   // type: 3 = raw bitmap (splash screen)
-  
+
   byte * dest_ptr=dest;
   int x,y;
   byte color;
@@ -196,7 +205,7 @@ byte Read_GUI_pattern(T_Gui_skin *gfx, SDL_Surface *gui, int start_x, int start_
 {
   byte buffer[256];
   int x,y;
-  
+
   if (Read_GUI_block(gfx, gui, start_x, start_y, buffer, 16, 16, section, 2))
     return 1;
 
@@ -212,50 +221,6 @@ byte Read_GUI_pattern(T_Gui_skin *gfx, SDL_Surface *gui, int start_x, int start_
   return 0;
 }
 
-void Center_GUI_cursor(T_Gui_skin *gfx, byte *cursor_buffer, int cursor_number)
-{
-  int x,y;
-  int start_x, start_y;
-  byte found;
-
-  // Locate first non-empty column
-  found=0;
-  for (start_x=0;start_x<14;start_x++)
-  {
-    for (y=0;y<29;y++)
-    {
-      if (cursor_buffer[y*29+start_x]!=gfx->Color_trans)
-      {
-        found=1;
-        break;
-      }
-    }
-    if (found)
-      break;
-  }
-  // Locate first non-empty line
-  found=0;
-  for (start_y=0;start_y<14;start_y++)
-  {
-    for (x=0;x<29;x++)
-    {
-      if (cursor_buffer[start_y*29+x]!=gfx->Color_trans)
-      {
-        found=1;
-        break;
-      }
-    }
-    if (found)
-      break;
-  }
-  gfx->Cursor_offset_X[cursor_number]=14-start_x;
-  gfx->Cursor_offset_Y[cursor_number]=14-start_y;
-
-  for (y=0;y<CURSOR_SPRITE_HEIGHT;y++)
-    for (x=0;x<CURSOR_SPRITE_WIDTH;x++)
-      gfx->Cursor_sprite[cursor_number][y][x]=cursor_buffer[(start_y+y)*29+start_x+x];
-}
-
 byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
 {
   int i,j;
@@ -263,12 +228,14 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
   byte color;
   byte neutral_color; // color neutre utilisée pour délimiter les éléments GUI
   int char_1=0;  // Indices utilisés pour les 4 "fontes" qui composent les
-  int char_2=0;  // grands titres de l'aide. Chaque indice avance dans 
+  int char_2=0;  // grands titres de l'aide. Chaque indice avance dans
   int char_3=0;  // l'une des fontes dans l'ordre :  1 2
   int char_4=0;  //                                  3 4
-  byte mouse_cursor_area[31][29];
+  int largest_height;
   SDL_Palette * SDLPal;
-  
+  SDL_Color light;
+  SDL_Color dark;
+
   // Default palette
   if (!gui->format || gui->format->BitsPerPixel != 8)
   {
@@ -281,9 +248,6 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
     sprintf(Gui_loading_error_message, "Not a 256-color palette");
     return 1;
   }
-  
-  // Read the default palette
-  Get_SDL_Palette(SDLPal, gfx->Default_palette);
 
   // Carré "noir"
   gfx->Color[0] = Get_SDL_pixel_8(gui,cursor_x,cursor_y);
@@ -296,6 +260,8 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
     }
     color=Get_SDL_pixel_8(gui,cursor_x,cursor_y);
   } while(color==gfx->Color[0]);
+  // The scale of the skin is define by the width of the blocks: 8px for scale 1, 16px for scale 2 etc.
+  gfx->Factor = (cursor_x+4)/8;
   // Carré "foncé"
   gfx->Color[1] = color;
   do
@@ -343,7 +309,8 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
   // Reste : couleur neutre
   neutral_color=color;
 
-  
+  SDL_SetColorKey(gui, SDL_TRUE, gfx->Color_trans);
+
   cursor_x=0;
   cursor_y=1;
   while ((color=Get_SDL_pixel_8(gui,cursor_x,cursor_y))==gfx->Color[0])
@@ -355,67 +322,47 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
       return 1;
     }
   }
-  
+
+  // Replace by preferred colors
+  light.r = Config.Fav_menu_colors[2].R;
+  light.g = Config.Fav_menu_colors[2].G;
+  light.b = Config.Fav_menu_colors[2].B;
+  light.a = 255;
+  SDL_SetPaletteColors(SDLPal, &light, gfx->Color[2], 1);
+  dark.r = Config.Fav_menu_colors[1].R;
+  dark.g = Config.Fav_menu_colors[1].G;
+  dark.b = Config.Fav_menu_colors[1].B;
+  dark.a = 255;
+  SDL_SetPaletteColors(SDLPal, &dark, gfx->Color[1], 1);
+
+  // Read the default palette
+  Get_SDL_Palette(SDLPal, gfx->Default_palette);
+
   // Menu
   if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "menu"))
     return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Menu_block[0], Menu_bars[MENUBAR_TOOLS].Skin_width, Menu_bars[MENUBAR_TOOLS].Height,"menu",0))
-    return 1;
-
-  // Preview
-  cursor_x += Menu_bars[MENUBAR_TOOLS].Skin_width;
-  if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "preview"))
-    return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Preview, 173, 16, "preview", 0))
+  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Menu_block, Menu_bars[MENUBAR_TOOLS].Skin_width, Menu_bars[MENUBAR_TOOLS].Height,"menu",0))
     return 1;
   cursor_y+= Menu_bars[MENUBAR_TOOLS].Height;
 
   // Layerbar
   if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "layer bar"))
     return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Layerbar_block[0], 144, 10,"layer bar",0))
+  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Layerbar_block, 144, 10,"layer bar",0))
     return 1;
   cursor_y+= Menu_bars[MENUBAR_LAYERS].Height;
 
   // Animbar
   if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "anim bar"))
     return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Animbar_block[0], 236, 14,"anim bar",0))
+  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Animbar_block, 236, 14,"anim bar",0))
     return 1;
   cursor_y+= Menu_bars[MENUBAR_ANIMATION].Height;
 
   // Status bar
   if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "status bar"))
     return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Statusbar_block[0], Menu_bars[MENUBAR_STATUS].Skin_width, Menu_bars[MENUBAR_STATUS].Height,"status bar",0))
-    return 1;
-  cursor_y+= Menu_bars[MENUBAR_STATUS].Height;
-
-  // Menu (selected)
-  if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "selected menu"))
-    return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Menu_block[1], Menu_bars[MENUBAR_TOOLS].Skin_width, Menu_bars[MENUBAR_TOOLS].Height,"selected menu",0))
-    return 1;
-  cursor_y+= Menu_bars[MENUBAR_TOOLS].Height;
-
-  // Layerbar (selected)
-  if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "selected layer bar"))
-    return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Layerbar_block[1], 144, 10,"selected layer bar",0))
-    return 1;
-  cursor_y+= Menu_bars[MENUBAR_LAYERS].Height;
-
-  // Animbar (selected)
-  if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "selected anim bar"))
-    return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Animbar_block[1], 236, 14,"selected anim bar",0))
-    return 1;
-  cursor_y+= Menu_bars[MENUBAR_ANIMATION].Height;
-
-  // Status bar (selected)
-  if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "selected status bar"))
-    return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Statusbar_block[1], Menu_bars[MENUBAR_STATUS].Skin_width, Menu_bars[MENUBAR_STATUS].Height,"selected status bar",0))
+  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Statusbar_block, Menu_bars[MENUBAR_STATUS].Skin_width, Menu_bars[MENUBAR_STATUS].Height,"status bar",0))
     return 1;
   cursor_y+= Menu_bars[MENUBAR_STATUS].Height;
 
@@ -432,12 +379,11 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
       if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "effect sprite"))
         return 1;
     }
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Effect_sprite[i], EFFECT_SPRITE_WIDTH, EFFECT_SPRITE_HEIGHT, "effect sprite",0))
-      return 1;
-    cursor_x+=EFFECT_SPRITE_WIDTH;
+    gfx->Effect_sprite[i] = Create_texture(gui, cursor_x, cursor_y, EFFECT_SPRITE_WIDTH*gfx->Factor, EFFECT_SPRITE_HEIGHT*gfx->Factor);
+    cursor_x+=EFFECT_SPRITE_WIDTH*gfx->Factor;
   }
-  cursor_y+=EFFECT_SPRITE_HEIGHT;
-  
+  cursor_y+=EFFECT_SPRITE_HEIGHT*gfx->Factor;
+
   // Layer sprite
   for (j=0; j<3; j++)
   {
@@ -460,10 +406,13 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
     cursor_y+=LAYER_SPRITE_HEIGHT;
   }
 
-  
+
   // Mouse cursors
   for (i=0; i<NB_CURSOR_SPRITES; i++)
   {
+    int width=0;
+    int height=0;
+
     if (i==0)
     {
       if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "mouse cursor"))
@@ -474,51 +423,68 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
       if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "mouse cursor"))
         return 1;
     }
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, mouse_cursor_area, 29, 31, "mouse cursor",1))
-      return 1;
-    Center_GUI_cursor(gfx, (byte *)mouse_cursor_area,i);
-    cursor_x+=29;
+    GUI_seek_discover(gui, cursor_x, cursor_y, &width, &height, neutral_color);
+
+    gfx->Mouse_cursor_width[i] = width;
+    gfx->Mouse_cursor_height[i] = height;
+    gfx->Mouse_cursor[i] = Create_texture(gui, cursor_x, cursor_y, width, height);
+    cursor_x+=width;
   }
-  cursor_y+=31;
+  cursor_y+=gfx->Mouse_cursor_height[0];
+
 
   // Menu sprites
+  largest_height=0;
   for (i=0; i<NB_MENU_SPRITES; i++)
   {
-    if (i==0)
+    int width;
+    int height;
+
+    if (i==MENU_SPRITE_EMPTY || i==MENU_SPRITE_ADJUST || i==MENU_SPRITE_LAYER_MENU || i==MENU_SPRITE_ANIM_LAYERS || i==MENU_SPRITE_HIDE)
     {
+      cursor_y+=largest_height;
       if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "menu sprite"))
         return 1;
+      largest_height=0;
     }
     else
     {
       if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "menu sprite"))
         return 1;
     }
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Menu_sprite[0][i], MENU_SPRITE_WIDTH, MENU_SPRITE_HEIGHT, "menu sprite",1))
-      return 1;
-    cursor_x+=MENU_SPRITE_WIDTH;
+    GUI_seek_discover(gui, cursor_x, cursor_y, &width, &height, neutral_color);
+    gfx->Menu_sprite[0][i] = Create_texture(gui, cursor_x, cursor_y, width, height);
+    cursor_x+=width;
+    largest_height=Max(largest_height, height);
   }
-  cursor_y+=MENU_SPRITE_HEIGHT;
+  cursor_y+=largest_height;
 
   // Menu sprites (selected)
+  largest_height=0;
   for (i=0; i<NB_MENU_SPRITES; i++)
   {
-    if (i==0)
+    int width;
+    int height;
+
+    if (i==MENU_SPRITE_EMPTY || i==MENU_SPRITE_ADJUST || i==MENU_SPRITE_LAYER_MENU || i==MENU_SPRITE_ANIM_LAYERS || i==MENU_SPRITE_HIDE)
     {
+      cursor_y+=largest_height;
       if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "selected menu sprite"))
         return 1;
+      largest_height=0;
     }
     else
     {
       if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "selected menu sprite"))
         return 1;
     }
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Menu_sprite[1][i], MENU_SPRITE_WIDTH, MENU_SPRITE_HEIGHT, "selected menu sprite",1))
-      return 1;
-    cursor_x+=MENU_SPRITE_WIDTH;
+    GUI_seek_discover(gui, cursor_x, cursor_y, &width, &height, neutral_color);
+    gfx->Menu_sprite[1][i] = Create_texture(gui, cursor_x, cursor_y, width, height);
+    cursor_x+=width;
+    largest_height=Max(largest_height, height);
   }
-  cursor_y+=MENU_SPRITE_HEIGHT;
-  
+  cursor_y+=largest_height;
+
   // Drive sprites
   for (i=0; i<NB_ICON_SPRITES; i++)
   {
@@ -532,20 +498,20 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
       if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "sprite drive"))
         return 1;
     }
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Icon_sprite[i], ICON_SPRITE_WIDTH, ICON_SPRITE_HEIGHT, "sprite drive",1))
-      return 1;
-    cursor_x+=ICON_SPRITE_WIDTH;
+    gfx->Icon_sprite[i] = Create_texture(gui, cursor_x, cursor_y, ICON_SPRITE_WIDTH*gfx->Factor, ICON_SPRITE_HEIGHT*gfx->Factor);
+    cursor_x+=ICON_SPRITE_WIDTH*gfx->Factor;
   }
-  cursor_y+=ICON_SPRITE_HEIGHT;
+  cursor_y+=ICON_SPRITE_HEIGHT*gfx->Factor;
 
   // Logo splash screen
 
   if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "logo menu"))
     return 1;
-  if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, gfx->Logo_grafx2, 231, 56, "logo menu",3))
-    return 1;
-  cursor_y+=56;
-  
+
+  gfx->Logo_grafx2 = Create_texture(gui, cursor_x, cursor_y, 231*gfx->Factor, 56*gfx->Factor);
+
+  cursor_y+=56*gfx->Factor;
+
   // Trames
   for (i=0; i<NB_PRESET_SIEVE; i++)
   {
@@ -565,59 +531,46 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
   }
   cursor_y+=16;
 
+  // Font
+  if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "font (normal)"))
+        return 1;
+  for (i=0; i<256; i++)
+  {
+    // Each line holds 32 symbols, 8 lines
+    gfx->Font[i] = Create_texture(gui, cursor_x + (i%32)*8*gfx->Factor, cursor_y+(i/32)*8*gfx->Factor, 8*gfx->Factor, 8*gfx->Factor);
+  }
+  cursor_y+=8*8*gfx->Factor;
+
   // Help font: Normal
+  if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "help font (norm)"))
+        return 1;
   for (i=0; i<256; i++)
   {
-    // Each line holds 32 symbols
-    if ((i%32)==0)
-    {
-      if (i!=0)
-        cursor_y+=8;
-      if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "help font (norm)"))
-        return 1;
-    }
-    else
-    {
-      if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "help font (norm)"))
-        return 1;
-    }
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, &(gfx->Help_font_norm[i][0][0]), 6, 8, "help font (norm)",0))
-      return 1;
-    cursor_x+=6;
+    // Each line holds 32 symbols, 8 lines
+    gfx->Help_font_norm[i] = Create_texture(gui, cursor_x + (i%32)*6*gfx->Factor, cursor_y+(i/32)*8*gfx->Factor, 6*gfx->Factor, 8*gfx->Factor);
   }
-  cursor_y+=8;
-  
+  cursor_y+=8*8*gfx->Factor;
+
   // Help font: Bold
+  if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "help font (bold)"))
+        return 1;
   for (i=0; i<256; i++)
   {
-    // Each line holds 32 symbols
-    if ((i%32)==0)
-    {
-      if (i!=0)
-        cursor_y+=8;
-      if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "help font (bold)"))
-        return 1;
-    }
-    else
-    {
-      if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "help font (bold)"))
-        return 1;
-    }
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, &(gfx->Bold_font[i][0][0]), 6, 8, "help font (bold)",0))
-      return 1;
-    cursor_x+=6;
+    // Each line holds 32 symbols, 8 lines
+    gfx->Help_font_bold[i] = Create_texture(gui, cursor_x + (i%32)*6*gfx->Factor, cursor_y+(i/32)*8*gfx->Factor, 6*gfx->Factor, 8*gfx->Factor);
   }
-  cursor_y+=8;
+  cursor_y+=8*8*gfx->Factor;
+
+
 
   // Help font: Title
   for (i=0; i<256; i++)
   {
-    byte * dest;
     // Each line holds 64 symbols
     if ((i%64)==0)
     {
       if (i!=0)
-        cursor_y+=8;
+        cursor_y+=8*gfx->Factor;
       if (GUI_seek_down(gui, &cursor_x, &cursor_y, neutral_color, "help font (title)"))
         return 1;
     }
@@ -626,35 +579,33 @@ byte Parse_skin(SDL_Surface * gui, T_Gui_skin *gfx)
       if (GUI_seek_right(gui, &cursor_x, cursor_y, neutral_color, "help font (title)"))
         return 1;
     }
-    
+
     if (i&1)
       if (i&64)
-        dest=&(gfx->Help_font_t4[char_4++][0][0]);
+        gfx->Help_font_t4[char_4++] = Create_texture(gui, cursor_x, cursor_y, 6*gfx->Factor, 8*gfx->Factor);
       else
-        dest=&(gfx->Help_font_t2[char_2++][0][0]);
+        gfx->Help_font_t2[char_2++] = Create_texture(gui, cursor_x, cursor_y, 6*gfx->Factor, 8*gfx->Factor);
     else
       if (i&64)
-        dest=&(gfx->Help_font_t3[char_3++][0][0]);
+        gfx->Help_font_t3[char_3++] = Create_texture(gui, cursor_x, cursor_y, 6*gfx->Factor, 8*gfx->Factor);
       else
-        dest=&(gfx->Help_font_t1[char_1++][0][0]);
-    
-    if (Read_GUI_block(gfx, gui, cursor_x, cursor_y, dest, 6, 8, "help font (title)",0))
-      return 1;
-    cursor_x+=6;
+        gfx->Help_font_t1[char_1++] = Create_texture(gui, cursor_x, cursor_y, 6*gfx->Factor, 8*gfx->Factor);
+
+    cursor_x+=6*gfx->Factor;
   }
-  cursor_y+=8;
-  
+  cursor_y+=8*gfx->Factor;
+
   // Copy unselected bitmaps to current ones
-  memcpy(gfx->Menu_block[2], gfx->Menu_block[0], 
-    Menu_bars[MENUBAR_TOOLS].Skin_width*Menu_bars[MENUBAR_TOOLS].Height);
-  memcpy(gfx->Layerbar_block[2], gfx->Layerbar_block[0],
-    sizeof(gfx->Layerbar_block[0]));
-  memcpy(gfx->Animbar_block[2], gfx->Animbar_block[0],
-    sizeof(gfx->Animbar_block[0]));
-  memcpy(gfx->Statusbar_block[2], gfx->Statusbar_block[0],
-    Menu_bars[MENUBAR_STATUS].Skin_width*Menu_bars[MENUBAR_STATUS].Height);
-  
-  
+  //memcpy(gfx->Menu_block[2], gfx->Menu_block[0],
+  //  Menu_bars[MENUBAR_TOOLS].Skin_width*Menu_bars[MENUBAR_TOOLS].Height);
+  //memcpy(gfx->Layerbar_block[2], gfx->Layerbar_block[0],
+  //  sizeof(gfx->Layerbar_block[0]));
+  //memcpy(gfx->Animbar_block[2], gfx->Animbar_block[0],
+  //  sizeof(gfx->Animbar_block[0]));
+  //memcpy(gfx->Statusbar_block[2], gfx->Statusbar_block[0],
+  //  Menu_bars[MENUBAR_STATUS].Skin_width*Menu_bars[MENUBAR_STATUS].Height);
+
+
   return 0;
 }
 
@@ -676,12 +627,12 @@ T_Gui_skin * Load_graphics(const char * skin_file, T_Gradient_array *gradients)
     sprintf(Gui_loading_error_message, "Not enough memory to read skin file\n");
     return NULL;
   }
-  
+
   // Read the "skin" file
   strcpy(filename,Data_directory);
   strcat(filename,SKINS_SUBDIRECTORY PATH_SEPARATOR);
   strcat(filename,skin_file);
-  
+
   gui=Load_surface(filename, gradients);
   if (!gui)
   {
@@ -701,6 +652,35 @@ T_Gui_skin * Load_graphics(const char * skin_file, T_Gradient_array *gradients)
   return gfx;
 }
 
+void Destroy_graphics(T_Gui_skin *skin)
+{
+  int i;
+
+  if (!skin)
+    return;
+
+  for(i=0; i< NB_EFFECTS_SPRITES; i++)
+    SDL_DestroyTexture(skin->Effect_sprite[i]);
+  for(i=0; i< NB_CURSOR_SPRITES; i++)
+    SDL_DestroyTexture(skin->Mouse_cursor[i]);
+  SDL_DestroyTexture(skin->Logo_grafx2);
+  for(i=0; i< 256; i++)
+    SDL_DestroyTexture(skin->Help_font_norm[i]);
+  for(i=0; i< 256; i++)
+    SDL_DestroyTexture(skin->Help_font_bold[i]);
+  for(i=0; i< 64; i++)
+    SDL_DestroyTexture(skin->Help_font_t1[i]);
+  for(i=0; i< 64; i++)
+    SDL_DestroyTexture(skin->Help_font_t2[i]);
+  for(i=0; i< 64; i++)
+    SDL_DestroyTexture(skin->Help_font_t3[i]);
+  for(i=0; i< 64; i++)
+    SDL_DestroyTexture(skin->Help_font_t4[i]);
+  for(i=0; i< NB_ICON_SPRITES; i++)
+    SDL_DestroyTexture(skin->Icon_sprite[i]);
+  free(skin);
+}
+
 // ---- font loading -----
 
 byte Parse_font(SDL_Surface * image, byte * font)
@@ -709,7 +689,7 @@ byte Parse_font(SDL_Surface * image, byte * font)
   byte color;
   int x, y;
   int chars_per_line;
-  
+
   // Check image size
   if (image->w % 8)
   {
@@ -762,10 +742,10 @@ byte * Load_font(const char * font_name)
     sprintf(Gui_loading_error_message, "Not enough memory to read font file\n");
     return NULL;
   }
-  
+
   // Read the file containing the image
   sprintf(filename,"%s" SKINS_SUBDIRECTORY "%s%s", Data_directory, PATH_SEPARATOR, font_name);
-  
+
   image=Load_surface(filename, NULL);
   if (!image)
   {
@@ -794,6 +774,7 @@ void Do_nothing(void)
   // Initialiseur d'un bouton:
 
 void Init_button(byte        btn_number,
+                 enum MENU_SPRITE icon,
                  const char* tooltip,
                  word        x_offset, word   y_offset,
                  word        width,    word   height,
@@ -810,7 +791,7 @@ void Init_button(byte        btn_number,
   Buttons_Pool[btn_number].Width           =width-1;
   Buttons_Pool[btn_number].Height          =height-1;
   Buttons_Pool[btn_number].Pressed         =0;
-  Buttons_Pool[btn_number].Icon            =-1;
+  Buttons_Pool[btn_number].Icon            =icon;
   Buttons_Pool[btn_number].Shape           =shape;
   Buttons_Pool[btn_number].Tooltip         =tooltip;
   Buttons_Pool[btn_number].Left_action     =left_action;
@@ -835,6 +816,7 @@ void Init_buttons(void)
     Buttons_Pool[button_index].Right_shortcut[0]=0;
     Buttons_Pool[button_index].Right_shortcut[1]=0;
     Init_button(button_index,
+                MENU_SPRITE_EMPTY,
                 "",
                 0,0,
                 1,1,
@@ -848,6 +830,7 @@ void Init_buttons(void)
   // Ici viennent les déclarations des boutons que l'on sait gérer
 
   Init_button(BUTTON_PAINTBRUSHES,
+              MENU_SPRITE_EMPTY,
               "Paintbrush choice       ",
               0,1,
               16,16,
@@ -858,6 +841,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_ADJUST,
+              MENU_SPRITE_ADJUST,
               "Adjust / Transform menu ",
               0,18,
               16,16,
@@ -868,6 +852,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_DRAW,
+              MENU_SPRITE_CONTINUOUS_DRAW,
               "Freehand draw. / Toggle ",
               17,1,
               16,16,
@@ -878,6 +863,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_CURVES,
+              MENU_SPRITE_3_POINTS_CURVE,
               "Splines / Toggle        ",
               17,18,
               16,16,
@@ -888,6 +874,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_LINES,
+              MENU_SPRITE_LINE,
               "Lines / Toggle          ",
               34,1,
               16,16,
@@ -898,6 +885,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_AIRBRUSH,
+              MENU_SPRITE_SPRAY,
               "Spray / Menu            ",
               34,18,
               16,16,
@@ -908,6 +896,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_FLOODFILL,
+              MENU_SPRITE_FILL,
               "Floodfill / Replace col.",
               51,1,
               16,16,
@@ -918,6 +907,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_POLYGONS,
+              MENU_SPRITE_POLYGON,
               "Polylines / Polyforms   ",
               51,18,
               15,15,
@@ -928,6 +918,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_POLYFILL,
+              MENU_SPRITE_FILLED_POLYGON,
               "Polyfill / Filled Pforms",
               52,19,
               15,15,
@@ -938,6 +929,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_RECTANGLES,
+              MENU_SPRITE_RECTANGLE,
               "Empty rectangles        ",
               68,1,
               15,15,
@@ -948,6 +940,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_FILLRECT,
+              MENU_SPRITE_FILLED_RECTANGLE,
               "Filled rectangles       ",
               69,2,
               15,15,
@@ -958,6 +951,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_CIRCLES,
+              MENU_SPRITE_CIRCLE,
               "Empty circles / ellipses",
               68,18,
               15,15,
@@ -968,6 +962,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_FILLCIRC,
+              MENU_SPRITE_FILLED_CIRCLE,
               "Filled circles / ellips.",
               69,19,
               15,15,
@@ -978,6 +973,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_GRADRECT,
+              MENU_SPRITE_GRAD_RECTANGLE,
               "Grad. rect / Grad. menu ",
               85,1,
               16,16,
@@ -988,6 +984,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_SPHERES,
+              MENU_SPRITE_GRAD_CIRCLE,
               "Grad. spheres / ellipses",
               85,18,
               16,16,
@@ -998,6 +995,7 @@ void Init_buttons(void)
               FAMILY_TOOL);
 
   Init_button(BUTTON_BRUSH,
+              MENU_SPRITE_GRAB_BRUSH,
               "Brush grab. / Restore   ",
               106,1,
               15,15,
@@ -1008,6 +1006,7 @@ void Init_buttons(void)
               FAMILY_INTERRUPTION);
 
   Init_button(BUTTON_POLYBRUSH,
+              MENU_SPRITE_LASSO,
               "Lasso / Restore brush   ",
               107,2,
               15,15,
@@ -1018,6 +1017,7 @@ void Init_buttons(void)
               FAMILY_INTERRUPTION);
 
   Init_button(BUTTON_BRUSH_EFFECTS,
+              MENU_SPRITE_BRUSH_EFFECTS,
 #ifdef __ENABLE_LUA__
               "Brush effects / factory ",
 #else
@@ -1036,6 +1036,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_EFFECTS,
+              MENU_SPRITE_EFFECTS,
               "Drawing modes (effects) ",
               123,1,
               16,16,
@@ -1046,6 +1047,7 @@ void Init_buttons(void)
               FAMILY_EFFECTS);
 
   Init_button(BUTTON_TEXT,
+              MENU_SPRITE_TEXT,
               "Text                    ",
               123,18,
               16,16,
@@ -1056,6 +1058,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_MAGNIFIER,
+              MENU_SPRITE_MAGNIFIER,
               "Magnify mode / Menu     ",
               140,1,
               16,16,
@@ -1066,6 +1069,7 @@ void Init_buttons(void)
               FAMILY_INTERRUPTION);
 
   Init_button(BUTTON_COLORPICKER,
+              MENU_SPRITE_COLOR_PICKER,
               "Pipette / Invert colors ",
               140,18,
               16,16,
@@ -1076,6 +1080,7 @@ void Init_buttons(void)
               FAMILY_INTERRUPTION);
 
   Init_button(BUTTON_RESOL,
+              MENU_SPRITE_SCREEN,
               "Screen size / Safe. res.",
               161,1,
               16,16,
@@ -1084,8 +1089,9 @@ void Init_buttons(void)
               0,0,
               Do_nothing,
               FAMILY_INSTANT);
-  
+
   Init_button(BUTTON_PAGE,
+              MENU_SPRITE_SPARE,
               "Go / Copy to other page ",
               161,18,
               16,16,
@@ -1096,6 +1102,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_SAVE,
+              MENU_SPRITE_SAVE,
               "Save as / Save          ",
               178,1,
               15,15,
@@ -1106,6 +1113,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_LOAD,
+              MENU_SPRITE_LOAD,
               "Load / Re-load          ",
               179,2,
               15,15,
@@ -1116,6 +1124,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_SETTINGS,
+              MENU_SPRITE_OPTIONS,
               "Settings / Skins        ",
               178,18,
               16,16,
@@ -1126,6 +1135,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_CLEAR,
+              MENU_SPRITE_CLEAR,
               "Clear / with backcolor  ",
               195,1,
               17,16,
@@ -1136,6 +1146,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_HELP,
+              MENU_SPRITE_HELP,
               "Help / Statistics       ",
               195,18,
               17,16,
@@ -1146,6 +1157,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_UNDO,
+              MENU_SPRITE_UNDO,
               "Undo / Redo             ",
               213,1,
               19,12,
@@ -1156,6 +1168,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_KILL,
+              MENU_SPRITE_KILL,
               "Kill current page       ",
               213,14,
               19,7,
@@ -1166,6 +1179,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_QUIT,
+              MENU_SPRITE_QUIT,
               "Quit                    ",
               213,22,
               19,12,
@@ -1176,6 +1190,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_PALETTE,
+              MENU_SPRITE_PALETTE,
               "Palette editor / setup  ",
               237,9,
               16,8,
@@ -1186,6 +1201,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_PAL_LEFT,
+              MENU_SPRITE_PAL_LEFT,
               "Scroll pal. bkwd / Fast ",
               237,18,
               15,15,
@@ -1196,6 +1212,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_PAL_RIGHT,
+              MENU_SPRITE_PAL_RIGHT,
               "Scroll pal. fwd / Fast  ",
               238,19,
               15,15,
@@ -1206,6 +1223,7 @@ void Init_buttons(void)
               FAMILY_INSTANT);
 
   Init_button(BUTTON_CHOOSE_COL,
+              -1,
               "Color #"                 ,
               MENU_WIDTH+1,1,
               1,32, // La largeur est mise à jour à chq chngmnt de mode
@@ -1218,6 +1236,7 @@ void Init_buttons(void)
   // Layer bar
 
   Init_button(BUTTON_LAYER_MENU,
+              MENU_SPRITE_LAYER_MENU,
               "Layers manager          ",
               0,0,
               57,9,
@@ -1227,6 +1246,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_LAYER_COLOR,
+              MENU_SPRITE_LAYER_TRANSPARENT,
               "Get/Set transparent col.",
               58,0,
               13,9,
@@ -1236,6 +1256,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_LAYER_MERGE,
+              MENU_SPRITE_LAYER_MERGE,
               "Merge layer             ",
               72,0,
               13,9,
@@ -1245,15 +1266,17 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_LAYER_ADD,
-              "Add layer               ",
+              MENU_SPRITE_LAYER_ADD,
+              "Add/Duplicate  layer    ",
               86,0,
               13,9,
               BUTTON_SHAPE_RECTANGLE,
-              Button_Layer_add, Button_Layer_add,
+              Button_Layer_add, Button_Layer_duplicate,
               0,0,
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_LAYER_REMOVE,
+              MENU_SPRITE_LAYER_DROP,
               "Drop layer              ",
               100,0,
               13,9,
@@ -1263,6 +1286,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_LAYER_DOWN,
+              MENU_SPRITE_LAYER_LOWER,
               "Lower layer             ",
               114,0,
               13,9,
@@ -1272,6 +1296,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_LAYER_UP,
+              MENU_SPRITE_LAYER_RAISE,
               "Raise layer             ",
               128,0,
               13,9,
@@ -1281,6 +1306,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_LAYER_SELECT,
+              -1,
               "Layer select / toggle   ",
               142,0,
               13,9, // Will be updated according to actual number of layers
@@ -1293,6 +1319,7 @@ void Init_buttons(void)
  // Anim bar
 
   Init_button(BUTTON_LAYER_MENU2,
+              MENU_SPRITE_ANIM_LAYERS,
               "Layers manager          ",
               0,0,
               44,13,
@@ -1302,6 +1329,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_TIME,
+              MENU_SPRITE_ANIM_TIME,
               "Set frame time          ",
               45,0,
               13,13,
@@ -1311,6 +1339,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_FIRST_FRAME,
+              MENU_SPRITE_ANIM_FIRST,
               "Go to first frame       ",
               116,0,
               13,13,
@@ -1320,6 +1349,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_PREV_FRAME,
+              MENU_SPRITE_ANIM_PREV,
               "Go to prev. frame/Rewind",
               130,0,
               13,13,
@@ -1329,6 +1359,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_NEXT_FRAME,
+              MENU_SPRITE_ANIM_NEXT,
               "Go to next frame / Play ",
               144,0,
               13,13,
@@ -1338,6 +1369,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_LAST_FRAME,
+              MENU_SPRITE_ANIM_LAST,
               "Go to last frame        ",
               158,0,
               13,13,
@@ -1347,15 +1379,17 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_ADD_FRAME,
+              MENU_SPRITE_ANIM_ADD,
               "Add frame               ",
               177,0,
               13,13,
               BUTTON_SHAPE_RECTANGLE,
-              Button_Layer_add, Button_Layer_add,
+              Button_Layer_duplicate, Button_Layer_duplicate,
               0,0,
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_REMOVE_FRAME,
+              MENU_SPRITE_ANIM_DROP,
               "Drop frame              ",
               191,0,
               13,13,
@@ -1365,6 +1399,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_DOWN_FRAME,
+              MENU_SPRITE_ANIM_MOVE_BACK,
               "Move frame back         ",
               205,0,
               13,13,
@@ -1374,6 +1409,7 @@ void Init_buttons(void)
               Do_nothing,
               FAMILY_INSTANT);
   Init_button(BUTTON_ANIM_UP_FRAME,
+              MENU_SPRITE_ANIM_MOVE_FORWARD,
               "Move frame forwards     ",
               219,0,
               13,13,
@@ -1385,6 +1421,7 @@ void Init_buttons(void)
 
   // Status bar
   Init_button(BUTTON_HIDE,
+              MENU_SPRITE_HIDE,
               "Hide toolbars / Select  ",
               0,0,
               16,9,
@@ -1825,7 +1862,7 @@ void Init_operations(void)
                         Pan_view_12_2,0,FAST_MOUSE);
   Init_operation(OPERATION_PAN_VIEW,0,2,
                         Pan_view_0_2,0,FAST_MOUSE);
-                        
+
 }
 
 
@@ -1848,13 +1885,13 @@ void Set_video_mode(short  width,
   }
   if (!fullscreen)
     supported = 128; // Prefere, non modifiable
-  else if (SDL_VideoModeOK(width, height, 8, SDL_FULLSCREEN))
+  else // if (SDL_VideoModeOK(width, height, 8, SDL_FULLSCREEN))
     supported = 1; // supported
-  else
-  {
-    // Non supporte : on ne le prend pas
-    return;
-  }
+  //else
+  //{
+  //  // Non supporte : on ne le prend pas
+  //  return;
+  //}
 
   Video_mode[Nb_video_modes].Width          = width;
   Video_mode[Nb_video_modes].Height          = height;
@@ -1882,13 +1919,13 @@ int Compare_video_modes(const void *p1, const void *p2)
 // Initializes the list of available video modes
 void Set_all_video_modes(void)
 {
-  SDL_Rect** Modes;
+  int sdl_modes;
   Nb_video_modes=0;
-  
+
   // The first mode will have index number 0.
   // It will be the default mode if an unsupported one
   // is requested in gfx2.ini
-  #if defined(__GP2X__) || defined(__WIZ__) || defined(__CAANOO__)
+  #if defined(__GP2X__) || defined(__WIZ__) || defined(__CAANOO__) || defined(GCWZERO)
   // Native GP2X resolution
   Set_video_mode( 320,240,0, 1);
   #else
@@ -1896,94 +1933,32 @@ void Set_all_video_modes(void)
   Set_video_mode( 640,480,0, 0);
   #endif
 
-  Set_video_mode( 320,200,0, 1);
-  Set_video_mode( 320,224,0, 1);
-  #if !defined(__GP2X__) && !defined(__WIZ__) && !defined(__CAANOO__)
-  // For the GP2X, this one is already declared above.
-  Set_video_mode( 320,240,0, 1);
-  #endif
-  Set_video_mode( 320,256,0, 1);
-  Set_video_mode( 320,270,0, 1);
-  Set_video_mode( 320,282,0, 1);
-  Set_video_mode( 320,300,0, 1);
-  Set_video_mode( 320,360,0, 1);
-  Set_video_mode( 320,400,0, 1);
-  Set_video_mode( 320,448,0, 1);
-  Set_video_mode( 320,480,0, 1);
-  Set_video_mode( 320,512,0, 1);
-  Set_video_mode( 320,540,0, 1);
-  Set_video_mode( 320,564,0, 1);
-  Set_video_mode( 320,600,0, 1);
-  Set_video_mode( 360,200,0, 1);
-  Set_video_mode( 360,224,0, 1);
-  Set_video_mode( 360,240,0, 1);
-  Set_video_mode( 360,256,0, 1);
-  Set_video_mode( 360,270,0, 1);
-  Set_video_mode( 360,282,0, 1);
-  Set_video_mode( 360,300,0, 1);
-  Set_video_mode( 360,360,0, 1);
-  Set_video_mode( 360,400,0, 1);
-  Set_video_mode( 360,448,0, 1);
-  Set_video_mode( 360,480,0, 1);
-  Set_video_mode( 360,512,0, 1);
-  Set_video_mode( 360,540,0, 1);
-  Set_video_mode( 360,564,0, 1);
-  Set_video_mode( 360,600,0, 1);
-  Set_video_mode( 400,200,0, 1);
-  Set_video_mode( 400,224,0, 1);
-  Set_video_mode( 400,240,0, 1);
-  Set_video_mode( 400,256,0, 1);
-  Set_video_mode( 400,270,0, 1);
-  Set_video_mode( 400,282,0, 1);
-  Set_video_mode( 400,300,0, 1);
-  Set_video_mode( 400,360,0, 1);
-  Set_video_mode( 400,400,0, 1);
-  Set_video_mode( 400,448,0, 1);
-  Set_video_mode( 400,480,0, 1);
-  Set_video_mode( 400,512,0, 1);
-  Set_video_mode( 400,540,0, 1);
-  Set_video_mode( 400,564,0, 1);
-  Set_video_mode( 400,600,0, 1);
-  Set_video_mode( 640,224,0, 1);
-  Set_video_mode( 640,240,0, 1);
-  Set_video_mode( 640,256,0, 1);
-  Set_video_mode( 640,270,0, 1);
-  Set_video_mode( 640,300,0, 1);
-  Set_video_mode( 640,350,0, 1);
-  Set_video_mode( 640,400,0, 1);
-  Set_video_mode( 640,448,0, 1);
-  Set_video_mode( 640,480,0, 1);
-  Set_video_mode( 640,512,0, 1);
-  Set_video_mode( 640,540,0, 1);
-  Set_video_mode( 640,564,0, 1);
-  Set_video_mode( 640,600,0, 1);
-  Set_video_mode( 800,600,0, 1);
-  Set_video_mode(1024,768,0, 1);
-
-  Modes = SDL_ListModes(NULL, SDL_FULLSCREEN);
-  if ((Modes != (SDL_Rect**)0) && (Modes!=(SDL_Rect**)-1))
+  sdl_modes=SDL_GetNumDisplayModes(0);
+  if (sdl_modes)
   {
     int index;
-    for (index=0; Modes[index]; index++)
+    for (index=0; index<sdl_modes; index++)
     {
       int index2;
-#if defined(__GP2X__) || defined(__WIZ__) || defined(__CAANOO__)
-      // On the GP2X the first mode is not windowed, so include it in the search.
-      index2=0;
-#else
-      index2=1;
-#endif
-      for (/**/; index2 < Nb_video_modes; index2++)
-        if (Modes[index]->w == Video_mode[index2].Width &&
-            Modes[index]->h == Video_mode[index2].Height)
+      SDL_DisplayMode mode;
+
+      if (SDL_GetDisplayMode(0, index, &mode))
+      {
+        continue;
+      }
+      if (mode.format != SDL_PIXELFORMAT_RGB888)
+        continue;
+      for (index2=0; index2 < Nb_video_modes; index2++)
+        if (mode.w == Video_mode[index2].Width &&
+            mode.h == Video_mode[index2].Height)
         {
           // Was already in the hard-coded list: ok, don't add.
           break;
         }
-      if (index2 >= Nb_video_modes && Modes[index]->w>=320 && Modes[index]->h>=200)
+      if (index2 >= Nb_video_modes && mode.w >= 320 && mode.h >= 200)
       {
         // New mode to add to the list
-        Set_video_mode(Modes[index]->w,Modes[index]->h,0, 1);
+        Set_video_mode(mode.w, mode.h, 0, 1);
       }
     }
     // Sort the modes : those found by SDL were listed at the end.
@@ -2074,7 +2049,7 @@ int Load_CFG(int reload_all)
                 if (cfg_shortcut_info.Key2 == 0x00FF)
                   cfg_shortcut_info.Key2 = 0x0000;
               }
-              
+
               for (index2=0;
                  ((index2<NB_SHORTCUTS) && (ConfigKey[index2].Number!=cfg_shortcut_info.Number));
                  index2++);
@@ -2271,7 +2246,7 @@ int Load_CFG(int reload_all)
             goto Erreur_lecture_config;
         }
         break;
-        
+
       case CHUNK_BRUSH:
         if (reload_all)
         {
@@ -2289,7 +2264,7 @@ int Load_CFG(int reload_all)
               goto Erreur_lecture_config;
             if (!Read_word_le(Handle, &height))
               goto Erreur_lecture_config;
-      
+
             Paintbrush[index].Width=width;
             Paintbrush[index].Height=height;
 
@@ -2297,7 +2272,7 @@ int Load_CFG(int reload_all)
               goto Erreur_lecture_config;
             if (!Read_word_le(Handle, &Paintbrush[index].Offset_Y))
               goto Erreur_lecture_config;
-            
+
             // Decode binary
             for (i=0;i<width*height;i++)
             {
@@ -2308,7 +2283,7 @@ int Load_CFG(int reload_all)
                   goto Erreur_lecture_config;
               }
               Paintbrush[index].Sprite[i/width][i%width] =
-                ((current_byte & (0x80 >> (i&7))) != 0);              
+                ((current_byte & (0x80 >> (i&7))) != 0);
             }
           }
         }
@@ -2318,32 +2293,32 @@ int Load_CFG(int reload_all)
             goto Erreur_lecture_config;
         }
         break;
-        
-        
+
+
       case CHUNK_SCRIPTS:
         if (reload_all)
         {
           int current_size=0;
           int current_script=0;
-          
+
           while(current_size<Chunk.Size)
           {
             byte size;
-            
+
             // Free (old) string
             free(Bound_script[current_script]);
             Bound_script[current_script]=NULL;
-            
+
             if (!Read_byte(Handle, &size))
               goto Erreur_lecture_config;
-              
+
             if (size!=0)
             {
               // Alloc string
               Bound_script[current_script]=malloc(size+1);
               if (Bound_script[current_script]==NULL)
                 return ERROR_MEMORY;
-              
+
               // Init and load string
               memset(Bound_script[current_script], 0, size+1);
               if (!Read_bytes(Handle, Bound_script[current_script], size))
@@ -2351,16 +2326,16 @@ int Load_CFG(int reload_all)
             }
             current_size+=size+1;
             current_script++;
-            
+
             // Do not load more strings than hard-coded limit
             if (current_script>=10)
               break;
           }
-          
-          
+
+
         }
         break;
-        
+
       default: // Chunk inconnu
         goto Erreur_lecture_config;
     }
@@ -2424,16 +2399,16 @@ int Save_CFG(void)
     switch(Ordering[index]>>8)
     {
       case 0 :
-        cfg_shortcut_info.Key =Config_Key[Ordering[index]&0xFF][0]; 
-        cfg_shortcut_info.Key2=Config_Key[Ordering[index]&0xFF][1]; 
+        cfg_shortcut_info.Key =Config_Key[Ordering[index]&0xFF][0];
+        cfg_shortcut_info.Key2=Config_Key[Ordering[index]&0xFF][1];
         break;
       case 1 :
-        cfg_shortcut_info.Key =Buttons_Pool[Ordering[index]&0xFF].Left_shortcut[0]; 
-        cfg_shortcut_info.Key2=Buttons_Pool[Ordering[index]&0xFF].Left_shortcut[1]; 
+        cfg_shortcut_info.Key =Buttons_Pool[Ordering[index]&0xFF].Left_shortcut[0];
+        cfg_shortcut_info.Key2=Buttons_Pool[Ordering[index]&0xFF].Left_shortcut[1];
         break;
-      case 2 : 
-        cfg_shortcut_info.Key =Buttons_Pool[Ordering[index]&0xFF].Right_shortcut[0]; 
-        cfg_shortcut_info.Key2=Buttons_Pool[Ordering[index]&0xFF].Right_shortcut[1]; 
+      case 2 :
+        cfg_shortcut_info.Key =Buttons_Pool[Ordering[index]&0xFF].Right_shortcut[0];
+        cfg_shortcut_info.Key2=Buttons_Pool[Ordering[index]&0xFF].Right_shortcut[1];
         break;
     }
     if (!Write_word_le(Handle, cfg_shortcut_info.Number) ||
@@ -2597,7 +2572,7 @@ int Save_CFG(void)
     // Compute size: brush container
     for (index=0; index<BRUSH_CONTAINER_COLUMNS*BRUSH_CONTAINER_ROWS; index++)
     {
-      
+
     }
     */
     Chunk.Number=CHUNK_BRUSH;
@@ -2613,8 +2588,8 @@ int Save_CFG(void)
 
       width=Paintbrush[index].Width;
       height=Paintbrush[index].Height;
-      
-      
+
+
       if (!Write_byte(Handle, Paintbrush[index].Shape))
         goto Erreur_sauvegarde_config;
       if (!Write_word_le(Handle, width))
@@ -2647,14 +2622,14 @@ int Save_CFG(void)
       }
     }
   }
-  
+
   // Save script shortcuts
   {
     int i;
     Chunk.Number=CHUNK_SCRIPTS;
     // Compute size : Data stored as 10 pascal strings
     Chunk.Size=0;
-    for (i=0; i<10; i++)    
+    for (i=0; i<10; i++)
     {
       if (Bound_script[i]==NULL)
         Chunk.Size+=1;
@@ -2665,23 +2640,23 @@ int Save_CFG(void)
     if (!Write_byte(Handle, Chunk.Number) ||
         !Write_word_le(Handle, Chunk.Size) )
       goto Erreur_sauvegarde_config;
-      
+
     // Strings
-    for (i=0; i<10; i++)    
+    for (i=0; i<10; i++)
     {
-      byte size=0;      
+      byte size=0;
       if (Bound_script[i]!=NULL)
         size=strlen(Bound_script[i]);
-        
+
       if (!Write_byte(Handle, size))
         goto Erreur_sauvegarde_config;
-        
+
       if (size)
         if (!Write_bytes(Handle, Bound_script[i], size))
           goto Erreur_sauvegarde_config;
     }
   }
-  
+
   if (fclose(Handle))
     return ERROR_SAVING_CFG;
 
@@ -2716,6 +2691,23 @@ void Set_config_defaults(void)
         break;
     }
   }
+  // Scancode-based shortcuts.
+  // Can't be put static in the table, because they are converted from physical
+  // key location into "local" keyboard key names.
+  Buttons_Pool[BUTTON_COLORPICKER].Left_shortcut[0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_GRAVE));
+  Buttons_Pool[BUTTON_COLORPICKER].Right_shortcut[0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_GRAVE))|MOD_SHIFT;
+  Config_Key[SPECIAL_CYCLE_MODE][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_GRAVE))|MOD_CTRL;
+  Config_Key[SPECIAL_PREVIOUS_FORECOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_LEFTBRACKET));
+  Config_Key[SPECIAL_NEXT_FORECOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_RIGHTBRACKET));
+  Config_Key[SPECIAL_PREVIOUS_BACKCOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_LEFTBRACKET))|MOD_SHIFT;
+  Config_Key[SPECIAL_NEXT_BACKCOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_RIGHTBRACKET))|MOD_SHIFT;
+  Config_Key[SPECIAL_PREVIOUS_USER_FORECOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_MINUS));
+  Config_Key[SPECIAL_NEXT_USER_FORECOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_EQUALS));
+  Config_Key[SPECIAL_PREVIOUS_USER_BACKCOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_MINUS))|MOD_SHIFT;
+  Config_Key[SPECIAL_NEXT_USER_BACKCOLOR][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_EQUALS))|MOD_SHIFT;
+  Config_Key[SPECIAL_SMALLER_PAINTBRUSH][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_PERIOD));
+  Config_Key[SPECIAL_BIGGER_PAINTBRUSH][0]=K2K(SDL_GetKeyFromScancode(SDL_SCANCODE_SLASH));
+
   // Shade
   Shade_current=0;
   for (index=0; index<8; index++)
@@ -2742,7 +2734,7 @@ void Set_config_defaults(void)
   // Stencil
   for (index=0; index<256; index++)
     Stencil[index]=1;
-  
+
   // Smooth
   Smooth_matrix[0][0]=1;
   Smooth_matrix[0][1]=2;
@@ -2794,7 +2786,7 @@ void Sig_handler(int sig)
   signal(SIGABRT, Handler_ABRT);
   signal(SIGSEGV, Handler_SEGV);
   signal(SIGFPE, Handler_FPE);
-  
+
   switch(sig)
   {
     case SIGTERM:
@@ -2822,37 +2814,37 @@ void Init_sighandler(void)
 void Init_brush_container(void)
 {
   int i;
-  
+
   for (i=0; i<BRUSH_CONTAINER_COLUMNS*BRUSH_CONTAINER_ROWS; i++)
   {
     int x,y,c;
-    
+
     Brush_container[i].Paintbrush_shape=PAINTBRUSH_SHAPE_MAX;
     Brush_container[i].Width=0;
     Brush_container[i].Height=0;
     memset(Brush_container[i].Palette,0,sizeof(T_Palette));
-    Brush_container[i].Transp_color=0;  
+    Brush_container[i].Transp_color=0;
     for (y=0; y<BRUSH_CONTAINER_PREVIEW_WIDTH; y++)
       for (x=0; x<BRUSH_CONTAINER_PREVIEW_HEIGHT; x++)
         Brush_container[i].Thumbnail[y][x]=0;
     for (c=0; c<256; c++)
         Brush_container[i].Colormap[c]=c;
-        
+
     Brush_container[i].Brush = NULL;
   }
 }
 
 void Set_current_skin(const char *skinfile, T_Gui_skin *gfx)
 {
-  int i;
-  
   // Free previous one
-  free(Gfx);
-  
+  Destroy_graphics(Gfx);
+
   // Assign main skin pointer
   Gfx = gfx;
+  Menu_factor_X = Gfx->Factor;
+  Menu_factor_Y = Gfx->Factor;
 
-  // Change config  
+  // Change config
   if(Config.Skin_file != skinfile) // Happens when loading the initial skin
   {
     free(Config.Skin_file);
@@ -2863,27 +2855,19 @@ void Set_current_skin(const char *skinfile, T_Gui_skin *gfx)
   //Config.Fav_menu_colors[1] = gfx->Default_palette[gfx->Color[1]];
   //Config.Fav_menu_colors[2] = gfx->Default_palette[gfx->Color[2]];
   //Config.Fav_menu_colors[3] = gfx->Default_palette[gfx->Color[3]];
-  
+
   // Reassign GUI color indices
-  MC_Black = gfx->Color[0];
-  MC_Dark =  gfx->Color[1];
-  MC_Light = gfx->Color[2];
-  MC_White = gfx->Color[3];
-  MC_Trans = gfx->Color_trans;
-  MC_OnBlack=MC_Dark;
-  MC_Window=MC_Light;
-  MC_Lighter=MC_White;
-  MC_Darker=MC_Dark;
-  
+  MC_Black = gfx->Default_palette[gfx->Color[0]];
+  MC_Dark =  gfx->Default_palette[gfx->Color[1]];
+  MC_Light = gfx->Default_palette[gfx->Color[2]];
+  MC_White = gfx->Default_palette[gfx->Color[3]];
 
   // Set menubars to point to the new data
-  for (i=0; i<3; i++)
-  {
-    Menu_bars[MENUBAR_TOOLS ].Skin[i] = (byte*)&(gfx->Menu_block[i]);
-    Menu_bars[MENUBAR_LAYERS].Skin[i] = (byte*)&(gfx->Layerbar_block[i]);
-    Menu_bars[MENUBAR_ANIMATION].Skin[i] = (byte*)&(gfx->Animbar_block[i]);
-    Menu_bars[MENUBAR_STATUS].Skin[i] = (byte*)&(gfx->Statusbar_block[i]);
-  }
+  Menu_bars[MENUBAR_TOOLS ].Skin = (byte*)&(gfx->Menu_block);
+  Menu_bars[MENUBAR_LAYERS].Skin = (byte*)&(gfx->Layerbar_block);
+  Menu_bars[MENUBAR_ANIMATION].Skin = (byte*)&(gfx->Animbar_block);
+  Menu_bars[MENUBAR_STATUS].Skin = (byte*)&(gfx->Statusbar_block);
+
 }
 
 void Init_paintbrush(int index, int width, int height, byte shape, const char * bitmap)
@@ -2891,18 +2875,18 @@ void Init_paintbrush(int index, int width, int height, byte shape, const char * 
   if (bitmap!=NULL)
   {
     int i;
-    
+
     Paintbrush[index].Shape=shape;
     Paintbrush[index].Width=width;
     Paintbrush[index].Height=height;
     Paintbrush[index].Offset_X=width>>1;
     Paintbrush[index].Offset_Y=height>>1;
-  
+
     // Decode pixels
     for (i=0;i<width*height;i++)
     {
       Paintbrush[index].Sprite[i/width][i%width] =
-        ((bitmap[i/8] & (0x80 >> (i&7))) != 0);              
+        ((bitmap[i/8] & (0x80 >> (i&7))) != 0);
     }
   }
   else
@@ -2918,7 +2902,7 @@ void Init_paintbrush(int index, int width, int height, byte shape, const char * 
 void Init_paintbrushes(void)
 {
   int index;
- 
+
   Init_paintbrush( 0, 1, 1,PAINTBRUSH_SHAPE_SQUARE, NULL);
   Init_paintbrush( 1, 2, 2,PAINTBRUSH_SHAPE_SQUARE, NULL);
   Init_paintbrush( 2, 3, 3,PAINTBRUSH_SHAPE_SQUARE, NULL);
@@ -2961,11 +2945,11 @@ void Init_paintbrushes(void)
   Init_paintbrush(39, 2, 2,PAINTBRUSH_SHAPE_ANTISLASH, NULL);
   Init_paintbrush(40, 4, 4,PAINTBRUSH_SHAPE_ANTISLASH, NULL);
   Init_paintbrush(41, 8, 8,PAINTBRUSH_SHAPE_ANTISLASH, NULL);
-  
+
   Init_paintbrush(42, 4, 4,PAINTBRUSH_SHAPE_RANDOM, "\x20\x81");
   Init_paintbrush(43, 8, 8,PAINTBRUSH_SHAPE_RANDOM, "\x44\x00\x11\x00\x88\x01\x40\x08");
   Init_paintbrush(44,13,13,PAINTBRUSH_SHAPE_RANDOM, "\x08\x00\x08\x90\x00\x10\x42\x10\x02\x06\x02\x02\x04\x02\x08\x42\x10\x44\x00\x00\x44\x00");
-  
+
   Init_paintbrush(45, 3, 3,PAINTBRUSH_SHAPE_MISC, "\x7f\x00");
   Init_paintbrush(46, 3, 3,PAINTBRUSH_SHAPE_MISC, "\xdd\x80");
   Init_paintbrush(47, 7, 7,PAINTBRUSH_SHAPE_MISC, "\x06\x30\x82\x04\x10\x20\x00");
@@ -2974,165 +2958,5 @@ void Init_paintbrushes(void)
   {
     Paintbrush[index].Offset_X=(Paintbrush[index].Width>>1);
     Paintbrush[index].Offset_Y=(Paintbrush[index].Height>>1);
-  }
-}
-
-/// Set application icon(s)
-void Define_icon(void)
-{
-#ifdef WIN32
-  // Specific code for Win32:
-  // Load icon from embedded resource.
-  // This will provide both the 16x16 and 32x32 versions.
-  do
-  {
-    HICON hicon;
-    HRSRC hresource;
-    HINSTANCE hInstance;
-    LPVOID lpResIconDir;
-    LPVOID lpResIcon16;
-    LPVOID lpResIcon32;
-    HGLOBAL hMem;
-    WORD nID;
-    SDL_SysWMinfo info;
-    
-    hInstance = (HINSTANCE)GetModuleHandle(NULL);
-    if (hInstance==NULL)
-      break;
-      
-    // Icon is resource #1
-    hresource = FindResource(hInstance, 
-      MAKEINTRESOURCE(1), 
-      RT_GROUP_ICON);
-    if (hresource==NULL)
-      break;
-  
-    // Load and lock the icon directory. 
-    hMem = LoadResource(hInstance, hresource); 
-    if (hMem==NULL)
-      break;
-
-    lpResIconDir = LockResource(hMem);
-    if (lpResIconDir==NULL)
-      break;
-      
-    SDL_VERSION(&info.version);
-    SDL_GetWMInfo(&info);
-      
-    //
-    // 16x16
-    //
-    
-    // Get the identifier of the 16x16 icon
-    nID = LookupIconIdFromDirectoryEx((PBYTE) lpResIconDir, TRUE, 
-        16, 16, LR_DEFAULTCOLOR); 
-    if (nID==0)
-      break;
-    
-    // Find the bits for the nID icon. 
-    hresource = FindResource(hInstance, 
-        MAKEINTRESOURCE(nID), 
-        MAKEINTRESOURCE((long)RT_ICON)); 
-    if (hresource==NULL)
-      break;
-     
-    // Load and lock the icon. 
-    hMem = LoadResource(hInstance, hresource); 
-    if (hMem==NULL)
-      break;
-    lpResIcon16 = LockResource(hMem);
-    if (lpResIcon16==NULL)
-      break;
-
-    // Create a handle to the icon. 
-    hicon = CreateIconFromResourceEx((PBYTE) lpResIcon16, 
-        SizeofResource(hInstance, hresource), TRUE, 0x00030000, 
-        16, 16, LR_DEFAULTCOLOR); 
-    if (hicon==NULL)
-      break;
-      
-    // Set it
-		SetClassLongPtr(info.window, GCL_HICONSM, (LONG_PTR)hicon);
-
-    
-    //
-    // 32x32
-    //
-    
-    // Get the identifier of the 32x32 icon
-    nID = LookupIconIdFromDirectoryEx((PBYTE) lpResIconDir, TRUE, 
-        32, 32, LR_DEFAULTCOLOR); 
-    if (nID==0)
-      break;
-    
-    // Find the bits for the nID icon. 
-    hresource = FindResource(hInstance, 
-        MAKEINTRESOURCE(nID), 
-        MAKEINTRESOURCE((long)RT_ICON)); 
-    if (hresource==NULL)
-      break;
-     
-    // Load and lock the icon. 
-    hMem = LoadResource(hInstance, hresource); 
-    if (hMem==NULL)
-      break;
-    lpResIcon32 = LockResource(hMem);
-    if (lpResIcon32==NULL)
-      break;
-
-    // Create a handle to the icon. 
-    hicon = CreateIconFromResourceEx((PBYTE) lpResIcon32, 
-        SizeofResource(hInstance, hresource), TRUE, 0x00030000, 
-        32, 32, LR_DEFAULTCOLOR); 
-    if (hicon==NULL)
-      break;
-
-    // Set it
-		SetClassLongPtr(info.window, GCL_HICON, (LONG_PTR)hicon);
-		
-		
-		// Success
-		return;
-  } while (0);
-  // Failure: fall back on normal SDL version:
-  
-#endif
-  // General version: Load icon from the file gfx2.gif
-  {
-    char icon_path[MAX_PATH_CHARACTERS];
-    SDL_Surface * icon;
-    sprintf(icon_path, "%s%s", Data_directory, "gfx2.gif");
-    icon = IMG_Load(icon_path);
-    if (icon && icon->w == 32 && icon->h == 32)
-    {
-      Uint32 pink;
-      pink = SDL_MapRGB(icon->format, 255, 0, 255);
-      
-      if (icon->format->BitsPerPixel == 8)
-      {
-        // 8bit image: use color key
-        
-        SDL_SetColorKey(icon, SDL_SRCCOLORKEY, pink);
-        SDL_WM_SetIcon(icon,NULL);
-      }
-      else
-      {
-        // 24bit image: need to build a mask on magic pink
-        
-        byte *icon_mask;
-        int x,y;
-        
-        icon_mask=malloc(128);
-        memset(icon_mask,0,128);
-        for (y=0;y<32;y++)
-          for (x=0;x<32;x++)
-            if (Get_SDL_pixel_hicolor(icon, x, y) != pink)
-              icon_mask[(y*32+x)/8] |=0x80>>(x&7);
-        SDL_WM_SetIcon(icon,icon_mask);
-        free(icon_mask);
-        icon_mask = NULL;
-      }
-      SDL_FreeSurface(icon);
-    }
   }
 }

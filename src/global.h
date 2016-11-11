@@ -2,6 +2,7 @@
 */
 /*  Grafx2 - The Ultimate 256-color bitmap paint program
 
+    Copyright 2014 Sergii Pylypenko
     Copyright 2009 Franck Charlet
     Copyright 2009 Yves Rizoud
     Copyright 2007 Adrien Destugues
@@ -29,7 +30,7 @@
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include "struct.h"
 
 // MAIN declares the variables,
@@ -67,17 +68,10 @@ GFX2_GLOBAL int  Nb_video_modes;
 
 // -- Menu colors
 
-GFX2_GLOBAL byte MC_Black; ///< Index of color to use as "black" in the GUI menus.
-GFX2_GLOBAL byte MC_Dark;  ///< Index of color to use as "dark grey" in the GUI menus.
-GFX2_GLOBAL byte MC_Light; ///< Index of color to use as "light grey" in the GUI menus.
-GFX2_GLOBAL byte MC_White; ///< Index of color to use as "white" in the GUI menus.
-GFX2_GLOBAL byte MC_Trans; ///< Index of color to use as "transparent" while loading the GUI file.
-
-GFX2_GLOBAL byte MC_OnBlack; ///< Index of color immediately lighter than "black" in the GUI menus.
-GFX2_GLOBAL byte MC_Window; ///< Index of color to use as window background in the GUI menus.
-GFX2_GLOBAL byte MC_Lighter; ///< Index of color lighter than window in the GUI menus.
-GFX2_GLOBAL byte MC_Darker; ///< Index of color darker than window in the GUI menus.
-
+GFX2_GLOBAL T_Components MC_Black; ///< Index of color to use as "black" in the GUI menus.
+GFX2_GLOBAL T_Components MC_Dark;  ///< Index of color to use as "dark grey" in the GUI menus.
+GFX2_GLOBAL T_Components MC_Light; ///< Index of color to use as "light grey" in the GUI menus.
+GFX2_GLOBAL T_Components MC_White; ///< Index of color to use as "white" in the GUI menus.
 
 // Input state
 GFX2_GLOBAL word Mouse_X; ///< Current mouse cursor position.
@@ -170,47 +164,30 @@ GFX2_GLOBAL short Paintbrush_offset_Y;
 // -- Graphic commands
 
 /// On the screen, draw a point.
-GFX2_GLOBAL Func_pixel Pixel;
+void Pixel(word x,word y,byte color);
 /// Test a pixel color from screen.
-GFX2_GLOBAL Func_read Read_pixel;
+byte Read_pixel(word x,word y);
 /// Redraw all screen, without overwriting the menu.
-GFX2_GLOBAL Func_display Display_screen;
+void Display_screen (word width,word height,word image_width);
 /// Draw a rectangle on screen.
-GFX2_GLOBAL Func_block Block;
+void Block(word start_x,word start_y,word width,word height,byte color);
 /// Draw a point from the image to screen (no zoom).
-GFX2_GLOBAL Func_pixel Pixel_preview_normal;
+void Pixel_preview_normal(word x,word y,byte color);
 /// Draw a point from the image to screen (magnified part).
-GFX2_GLOBAL Func_pixel Pixel_preview_magnifier;
+void Pixel_preview_magnifier(word x,word y,byte color);
 /// Draw a point from the image to screen (zoomed if needed).
 GFX2_GLOBAL Func_pixel Pixel_preview;
 /// Draw a horizontal XOR line on screen.
-GFX2_GLOBAL Func_line_XOR Horizontal_XOR_line;
+void Horizontal_XOR_line(word x_pos,word y_pos,word width);
 /// Draw a vertical XOR line on screen.
-GFX2_GLOBAL Func_line_XOR Vertical_XOR_line;
+void Vertical_XOR_line(word x_pos,word y_pos,word height);
 /// Display part of the brush on screen, color mode.
-GFX2_GLOBAL Func_display_brush_color Display_brush_color;
+void Display_brush_color(word x_pos,word y_pos,word x_offset,word y_offset,word width,word height,byte transp_color,word brush_width);
 /// Display part of the brush on screen, monochrome mode.
-GFX2_GLOBAL Func_display_brush_mono  Display_brush_mono;
+void Display_brush_mono(word x_pos,word y_pos,word x_offset,word y_offset,word width,word height,byte transp_color,byte color,word brush_width);
 /// Clear the brush currently displayed on screen, redrawing the image instead.
-GFX2_GLOBAL Func_display_brush_color Clear_brush;
-/// Remap part of the screen after the menu colors have changed.
-GFX2_GLOBAL Func_remap     Remap_screen;
-/// Draw a line on screen.
-GFX2_GLOBAL Func_procsline Display_line;
-/// Draw a line on screen, without doubling it if using wide pixels. (to be used when the line is already doubled in the input buffer)
-GFX2_GLOBAL Func_procsline Display_line_fast;
-/// Read a line of pixels from screen.
-GFX2_GLOBAL Func_procsline Read_line;
-/// Redraw all magnified part on screen, without overwriting the menu.
-GFX2_GLOBAL Func_display_zoom Display_zoomed_screen;
-/// Display part of the brush on the magnified part of screen, color mode.
-GFX2_GLOBAL Func_display_brush_color_zoom Display_brush_color_zoom;
-/// Display part of the brush on the magnified part of screen, monochrome mode.
-GFX2_GLOBAL Func_display_brush_mono_zoom  Display_brush_mono_zoom;
-/// Clear the brush currently displayed on the magnified part of screen, redrawing the image instead.
-GFX2_GLOBAL Func_display_brush_color_zoom Clear_brush_scaled;
-/// Draw an arbitrary brush on screen (not the current brush)
-GFX2_GLOBAL Func_draw_brush Display_brush;
+void Clear_brush(word x_pos,word y_pos,word x_offset,word y_offset,word width,word height,byte transp_color,word image_width);
+
 
 // -- Screen data
 
@@ -459,15 +436,14 @@ GFX2_GLOBAL word  Menu_palette_cell_width;
 
 /// Number of stacked windows currently displayed. 0 when no window is present.
 GFX2_GLOBAL byte Windows_open;
-/// Backup of ::Menu_is_visible, used to store it while a window is open.
-GFX2_GLOBAL byte Menu_is_visible_before_window;
-/// Backup of ::Menu_Y, used to store it while a window is open.
-GFX2_GLOBAL word Menu_Y_before_window;
 /// Backup of ::Paintbrush_hidden, used to store it while a window is open.
 GFX2_GLOBAL byte Paintbrush_hidden_before_window;
 
 /// The global stack of editor screens.
 GFX2_GLOBAL T_Window Window_stack[8];
+
+/// Native window handle
+#define Window_handle Window_stack[Windows_open-1].Handle
 
 /// Position of the left border of the topmost window (in screen coordinates)
 #define Window_pos_X Window_stack[Windows_open-1].Pos_X
@@ -519,6 +495,10 @@ GFX2_GLOBAL T_Window Window_stack[8];
 #define Window_attribute2 Window_stack[Windows_open-1].Attribute2
 
 #define Window_draggable Window_stack[Windows_open-1].Draggable
+
+///
+/// Background texture of the window
+#define Window_texture Window_stack[Windows_open-1].Texture
 
 // -- Information about the different drawing modes (effects)
 
@@ -721,11 +701,11 @@ GFX2_GLOBAL byte  Airbrush_multi_flow[256];
 /// Boolean, set to true to exit the program.
 GFX2_GLOBAL byte Quitting;
 /// Name of the directory that was current when the program was run.
-GFX2_GLOBAL char Initial_directory[256];
+GFX2_GLOBAL char Initial_directory[MAX_PATH_CHARACTERS];
 /// Name of the directory that holds the program's (read-only) data: skins, icon, etc.
-GFX2_GLOBAL char Data_directory[256];
+GFX2_GLOBAL char Data_directory[MAX_PATH_CHARACTERS];
 /// Name of the directory where grafx2 reads and writes configuration (gfx2.ini, gfx2.cfg)
-GFX2_GLOBAL char Config_directory[256];
+GFX2_GLOBAL char Config_directory[MAX_PATH_CHARACTERS];
 /// Current foreground color for drawing.
 GFX2_GLOBAL byte Fore_color;
 /// Current background color for drawing.
@@ -865,21 +845,38 @@ GFX2_GLOBAL SDL_Joystick* Joystick;
 ///
 /// This is the "key identifier" for the mouse 3rd button.
 /// It was chosen to not conflict with any SDL key number.
-#define KEY_MOUSEMIDDLE     (SDLK_LAST+1)
+
+///
+/// Convert an actual SDLK into grafx2 key code :
+/// SDL sets bit 0x40000000 to indicate a key identified by scancode, while
+/// grafx2 uses bit 0x0800.
+#define K2K(x) ((((x) & 0x40000000) >> 19) | ((x) & 0x1FF))
+
+#define KEY_MOUSEMIDDLE 0x0210
+#define KEY_MOUSEX1 0x0211
+#define KEY_MOUSEX2 0x0212
 ///
 /// This is the "key identifier" for the mouse wheelup.
 /// It was chosen to not conflict with any SDL key number.
-#define KEY_MOUSEWHEELUP    (SDLK_LAST+2)
+#define KEY_MOUSEWHEELUP 0x0200
 ///
 /// This is the "key identifier" for the mouse wheeldown.
 /// It was chosen to not conflict with any SDL key number.
-#define KEY_MOUSEWHEELDOWN  (SDLK_LAST+3)
+#define KEY_MOUSEWHEELDOWN 0x0201
+///
+/// This is the "key identifier" for the mouse wheelup.
+/// It was chosen to not conflict with any SDL key number.
+#define KEY_MOUSEWHEELLEFT 0x0202
+///
+/// This is the "key identifier" for the mouse wheeldown.
+/// It was chosen to not conflict with any SDL key number.
+#define KEY_MOUSEWHEELRIGHT 0x0203
 ///
 /// This is the "key identifier" for joystick button number 0.
 /// All numbers starting with this one are reserved for joystick buttons
 /// (since their is an unknown number of them, and for example 18 on GP2X)
 /// It was chosen to not conflict with any SDL key number.
-#define KEY_JOYBUTTON       (SDLK_LAST+4)
+#define KEY_JOYBUTTON       0x0100
 
 /// The joystick axis are {X,Y} - on all platforms so far.
 /// If there is ever a platform where they are reversed, put
@@ -911,7 +908,7 @@ GFX2_GLOBAL SDL_Joystick* Joystick;
     #define JOY_BUTTON_SELECT          (9)
     #define JOY_BUTTON_VOLUP           (16)
     #define JOY_BUTTON_VOLDOWN         (17)
-    
+
     #define KEY_ESC (KEY_JOYBUTTON+JOY_BUTTON_X)
 #elif defined(__WIZ__)
     /// Button definitions for the Wiz

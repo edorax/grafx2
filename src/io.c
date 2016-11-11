@@ -24,8 +24,6 @@
 // Fonctions de lecture/ecriture file, gèrent les systèmes big-endian et
 // little-endian.
 
-#define _XOPEN_SOURCE 500
-
 #include <SDL_endian.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -455,7 +453,7 @@ int Lock_file_handle = -1;
 
 byte Create_lock_file(const char *file_directory)
 {
-  #if defined (__amigaos__)||(__AROS__)
+  #if defined (__amigaos__)||(__AROS__)||(__ANDROID__)
     #warning "Missing code for your platform, please check and correct!"
   #else
   char lock_filename[MAX_PATH_CHARACTERS];

@@ -1032,7 +1032,7 @@ int L_InputBox(lua_State* L)
   control[0]=0;
   
   // OK
-  Window_set_normal_button( 7, 25 + 17 * nb_settings, 51,14,"OK" , 0,1,SDLK_RETURN);
+  Window_set_normal_button( 7, 25 + 17 * nb_settings, 51,14,"OK" , 0,1,K2K(SDLK_RETURN));
   control[Window_nb_buttons] = CONTROL_OK;
 
   // Cancel
@@ -1430,7 +1430,7 @@ int L_WaitInput(lua_State* L)
   }
   
   lua_pushboolean(L, moved ? 1 : 0);
-  lua_pushinteger(L, (Key == KEY_ESC) ? SDLK_ESCAPE : Key);
+  lua_pushinteger(L, (Key == KEY_ESC) ? K2K(SDLK_ESCAPE) : Key);
   lua_pushinteger(L, Mouse_X);
   lua_pushinteger(L, Mouse_Y);
   lua_pushinteger(L, Mouse_K);
@@ -1673,7 +1673,7 @@ int L_WindowPrint(lua_State* L)
 {
   int x, y, fg=0, bg=2;
   int len;
-  int colors[4] = {MC_Black, MC_Dark, MC_Light, MC_White};
+  T_Components colors[4] = {MC_Black, MC_Dark, MC_Light, MC_White};
   const char *text="";
   int nb_args = lua_gettop(L);
   
@@ -2040,7 +2040,7 @@ void Draw_script_name(word x, word y, word index, byte highlighted)
 
   if (Scripts_selector.Nb_elements)
   {
-    byte fg, bg;
+    T_Components fg, bg;
     
     current_item = Get_item_by_index(&Scripts_selector, index);
 
@@ -2060,10 +2060,10 @@ void Draw_script_name(word x, word y, word index, byte highlighted)
       bg=(highlighted)?MC_Dark:MC_Black;
       
       if (current_item->Icon != ICON_NONE)
-	  {
-      	Window_display_icon_sprite(x,y,current_item->Icon);
+	    {
+      	Window_draw_texture(Gfx->Icon_sprite[current_item->Icon], x, y, ICON_SPRITE_WIDTH, ICON_SPRITE_HEIGHT);
       	x+=8;
-	  }
+	    }
     }
     
     Print_in_window(x, y, current_item->Short_name, fg,bg);
@@ -2556,13 +2556,10 @@ void Button_Brush_Factory(void)
       Scripts_selector.Nb_elements,10, 0); // 3
   scriptlist = Window_set_list_button(scriptarea,scriptscroll,Draw_script_name, 0); // 4
 
-  Window_set_normal_button(10, 161, 67, 14, "Run", 0, 1, SDLK_RETURN); // 5
+  Window_set_normal_button(10, 161, 67, 14, "Run", 0, 1, K2K(SDLK_RETURN)); // 5
 
   Window_display_frame_in(6, FILESEL_Y + 88, DESC_WIDTH*6+4, 4*8+2); // Descr.
   Window_set_special_button(7, FILESEL_Y + 89+24,DESC_WIDTH*6,8); // 6
-  
-  // Box around path (slightly expands up left)
-  Window_rectangle(8, FILESEL_Y - 13, DESC_WIDTH*6+2, 9, MC_Black);
   
   while (1)
   {
@@ -2587,6 +2584,8 @@ void Button_Brush_Factory(void)
       strcpy(displayed_path, Config.Scripts_directory+q-DESC_WIDTH);
       displayed_path[0] = ELLIPSIS_CHARACTER;
     }
+    // Box around path (slightly expands up left)
+    Window_rectangle(8, FILESEL_Y - 13, DESC_WIDTH*6+2, 9, MC_Black);
     Print_help(9, FILESEL_Y - 12, displayed_path, 'N', 0, 0);
     
     Draw_script_information(Get_item_by_index(&Scripts_selector,
@@ -2606,7 +2605,7 @@ void Button_Brush_Factory(void)
     do
     {
       clicked_button = Window_clicked_button();
-      if (Key==SDLK_BACKSPACE && Config.Scripts_directory[0]!='\0')
+      if (Key==K2K(SDLK_BACKSPACE) && Config.Scripts_directory[0]!='\0')
       {
         // Make it select first entry (parent directory)
         scriptlist->List_start=0;

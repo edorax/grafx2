@@ -61,17 +61,17 @@ void Menu_tag_colors(char * window_title, byte * table, byte * mode, byte can_ca
   Open_window(176,150,window_title);
 
   Window_set_palette_button(6,38);                            // 1
-  Window_set_normal_button( 7, 19,78,14,"Clear" ,1,1,SDLK_c); // 2
-  Window_set_normal_button(91, 19,78,14,"Invert",1,1,SDLK_i); // 3
+  Window_set_normal_button( 7, 19,78,14,"Clear" ,1,1,K2K(SDLK_c)); // 2
+  Window_set_normal_button(91, 19,78,14,"Invert",1,1,K2K(SDLK_i)); // 3
   if (can_cancel)
   {
-    Window_set_normal_button(91,129,78,14,"OK"    ,0,1,SDLK_RETURN); // 4
+    Window_set_normal_button(91,129,78,14,"OK"    ,0,1,K2K(SDLK_RETURN)); // 4
     Window_set_normal_button( 7,129,78,14,"Cancel",0,1,KEY_ESC);  // 5
     // On enregistre la table dans un backup au cas où on ferait Cancel
     memcpy(backup_table,table,256);
   }
   else
-    Window_set_normal_button(49,129,78,14,"OK"    ,0,1,SDLK_RETURN); // 4
+    Window_set_normal_button(49,129,78,14,"OK"    ,0,1,K2K(SDLK_RETURN)); // 4
 
   // On affiche l'état actuel de la table
   for (index=0; index<=255; index++)
@@ -121,10 +121,10 @@ void Menu_tag_colors(char * window_title, byte * table, byte * mode, byte can_ca
     }
 
     if (!Mouse_K)
-    switch (Key)
     {
-      case SDLK_BACKQUOTE : // Récupération d'une couleur derrière le menu
-      case SDLK_COMMA :
+      if (Is_shortcut(Key,0x100+BUTTON_COLORPICKER))
+      {
+        // Pick color behind menu
         Get_color_behind_window(&color,&click);
         if (click)
         {
@@ -137,13 +137,11 @@ void Menu_tag_colors(char * window_title, byte * table, byte * mode, byte can_ca
           Wait_end_of_click();
         }
         Key=0;
-        break;
-      default:
-      if (Is_shortcut(Key,0x100+BUTTON_HELP))
+      }
+      else if (Is_shortcut(Key,0x100+BUTTON_HELP))
       {
         Window_help(BUTTON_EFFECTS, help_section);
         Key=0;
-        break;
       }
       else if (Is_shortcut(Key,close_shortcut))
       {
@@ -168,7 +166,7 @@ void Menu_tag_colors(char * window_title, byte * table, byte * mode, byte can_ca
 void Button_Constraint_mode(void)
 {
   int pixel;
-  
+
   if (Main_backups->Pages->Image_mode == IMAGE_MODE_MODE5)
   {
     // Disable
@@ -218,11 +216,11 @@ void Button_Tilemap_menu(void)
   Open_window(166,120,"Tilemap options");
 
   Window_set_normal_button(6,102,51,14,"Cancel",0,1,KEY_ESC);  // 1
-  Window_set_normal_button(110,102,51,14,"OK"    ,0,1,SDLK_RETURN); // 2
+  Window_set_normal_button(110,102,51,14,"OK"    ,0,1,K2K(SDLK_RETURN)); // 2
 
   Print_in_window(24,21, "Detect mirrored",MC_Dark,MC_Light);
   Window_display_frame(5,17,155,56);
-  
+
   Print_in_window(37,37, "Horizontally",MC_Black,MC_Light);
   Window_set_normal_button(18,34,13,13,flip_x?"X":"",0,1,0);  // 3
 
@@ -259,7 +257,7 @@ void Button_Tilemap_menu(void)
         Hide_cursor();
         Print_in_window(10,81,count?"X":" ", MC_Black, MC_Light);
         Display_cursor();
-        break;      
+        break;
     }
     if (Is_shortcut(Key,0x100+BUTTON_HELP))
       Window_help(BUTTON_EFFECTS, "TILEMAP");
@@ -272,11 +270,11 @@ void Button_Tilemap_menu(void)
       Config.Tilemap_allow_flipped_x!=flip_x ||
       Config.Tilemap_allow_flipped_y!=flip_y ||
       !Main_tilemap_mode;
-    
+
     Config.Tilemap_allow_flipped_x=flip_x;
     Config.Tilemap_allow_flipped_y=flip_y;
     Config.Tilemap_show_count=count;
-    
+
     if (changed)
     {
       Main_tilemap_mode=1;
@@ -294,18 +292,18 @@ void Button_Stencil_mode(void)
 }
 
 
-void Stencil_tag_color(byte color, byte tag_color)
+void Stencil_tag_color(byte color, T_Components tag_color)
 {
-  Block(Window_pos_X+(Menu_factor_X*(Window_palette_button_list->Pos_X+4+(color >> 4)*10)),
-        Window_pos_Y+(Menu_factor_Y*(Window_palette_button_list->Pos_Y+3+(color & 15)* 5)),
-        Menu_factor_X<<1,Menu_factor_Y*5,tag_color);
+  Window_rectangle(Window_palette_button_list->Pos_X+4+(color >> 4)*10,
+        Window_palette_button_list->Pos_Y+3+(color & 15)* 5,
+        2,5,tag_color);
 }
 
 void Stencil_update_color(byte color)
 {
-  Update_rect(Window_pos_X+(Menu_factor_X*(Window_palette_button_list->Pos_X+4+(color >> 4)*10)),
-      Window_pos_Y+(Menu_factor_Y*(Window_palette_button_list->Pos_Y+3+(color & 15)* 5)),
-      Menu_factor_X<<1,Menu_factor_Y*5);
+  Update_window_area(Window_palette_button_list->Pos_X+4+(color >> 4)*10,
+      Window_palette_button_list->Pos_Y+3+(color & 15)* 5,
+      2,5);
 }
 
 void Button_Stencil_menu(void)
@@ -362,7 +360,7 @@ void Button_Grid_menu(void)
   Open_window(149,118,"Grid");
 
   Window_set_normal_button(12,92,51,14,"Cancel",0,1,KEY_ESC);  // 1
-  Window_set_normal_button(86,92,51,14,"OK"    ,0,1,SDLK_RETURN); // 2
+  Window_set_normal_button(86,92,51,14,"OK"    ,0,1,K2K(SDLK_RETURN)); // 2
 
   Print_in_window(11,26, "X:",MC_Dark,MC_Light);
   input_x_button = Window_set_input_button(29,24,3); // 3
@@ -495,19 +493,19 @@ void Button_Grid_menu(void)
   if (clicked_button==2) // OK
   {
     byte modified;
-    
+
     modified = Snap_width!=chosen_X
     || Snap_height!=chosen_Y
     || Snap_offset_X!=dx_selected
     || Snap_offset_Y!=dy_selected;
-    
+
     Snap_width=chosen_X;
     Snap_height=chosen_Y;
     Snap_offset_X=dx_selected;
     Snap_offset_Y=dy_selected;
     Snap_mode=snapgrid;
     Show_grid=showgrid;
-    
+
     if (modified)
     {
       Tilemap_update();
@@ -526,7 +524,7 @@ void Button_Show_grid(void)
   Hide_cursor();
   Display_all_screen();
   Display_cursor();
-} 
+}
 
 
 // -- Mode Smooth -----------------------------------------------------------
@@ -566,15 +564,15 @@ void Button_Smooth_menu(void)
   Open_window(142,109,"Smooth");
 
   Window_set_normal_button(82,59,53,14,"Cancel",0,1,KEY_ESC); // 1
-  Window_set_normal_button(82,88,53,14,"OK"    ,0,1,SDLK_RETURN); // 2
+  Window_set_normal_button(82,88,53,14,"OK"    ,0,1,K2K(SDLK_RETURN)); // 2
 
   Window_display_frame(6,17,130,37);
   for (x=11,y=0; y<4; x+=31,y++)
   {
-    Window_set_normal_button(x,22,27,27,"",0,1,SDLK_LAST);      // 3,4,5,6
+    Window_set_normal_button(x,22,27,27,"",0,1,KEY_NONE);      // 3,4,5,6
     for (j=0; j<3; j++)
       for (i=0; i<3; i++)
-        Print_char_in_window(x+2+(i<<3),24+(j<<3),'0'+Smooth_default_matrices[y][i][j],MC_Black,MC_Light);
+        Window_print_char(x+2+(i<<3),24+(j<<3),'0'+Smooth_default_matrices[y][i][j],MC_Black,MC_Light);
   }
 
   Window_display_frame(6,58, 69,45);
@@ -748,15 +746,15 @@ void Button_Colorize_menu(void)
   Print_in_window(16,23,"Opacity:",MC_Dark,MC_Light);
   Window_set_input_button(87,21,3);                               // 1
   Print_in_window(117,23,"%",MC_Dark,MC_Light);
-  Window_set_normal_button(16,34,108,14,"Interpolate",1,1,SDLK_i); // 2
+  Window_set_normal_button(16,34,108,14,"Interpolate",1,1,K2K(SDLK_i)); // 2
   Window_display_frame(12,18,116,34);
 
-  Window_set_normal_button(16,54,108,14,"Additive"   ,2,1,SDLK_d); // 3
-  Window_set_normal_button(16,71,108,14,"Subtractive",1,1,SDLK_s); // 4
-  Window_set_normal_button(16,88,108,14,"Alpha",1,1,SDLK_a); // 4
+  Window_set_normal_button(16,54,108,14,"Additive"   ,2,1,K2K(SDLK_d)); // 3
+  Window_set_normal_button(16,71,108,14,"Subtractive",1,1,K2K(SDLK_s)); // 4
+  Window_set_normal_button(16,88,108,14,"Alpha",1,1,K2K(SDLK_a)); // 4
 
   Window_set_normal_button(16,111, 51,14,"Cancel"     ,0,1,KEY_ESC); // 5
-  Window_set_normal_button(73,111, 51,14,"OK"         ,0,1,SDLK_RETURN); // 6
+  Window_set_normal_button(73,111, 51,14,"OK"         ,0,1,K2K(SDLK_RETURN)); // 6
 
   Num2str(Colorize_opacity,str,3);
   Window_input_content(Window_special_button_list,str);
@@ -848,7 +846,7 @@ void Button_Tiling_menu(void)
   Open_window(138,79,"Tiling");
 
   Window_set_normal_button(13,55,51,14,"Cancel",0,1,KEY_ESC);  // 1
-  Window_set_normal_button(74,55,51,14,"OK"    ,0,1,SDLK_RETURN); // 2
+  Window_set_normal_button(74,55,51,14,"OK"    ,0,1,K2K(SDLK_RETURN)); // 2
   input_offset_x_button = Window_set_input_button(91,21,4);   // 3
   input_offset_y_button = Window_set_input_button(91,35,4);   // 4
   Print_in_window(12,23,"Offset X:",MC_Dark,MC_Light);
@@ -945,40 +943,40 @@ void Draw_sieve_scaled(short origin_x, short origin_y)
   short y_pos;
   short x_size;
   short y_size;
-  short start_x=Window_pos_X+(Menu_factor_X*230);
-  short start_y=Window_pos_Y+(Menu_factor_Y*78);
+  short start_x=230;
+  short start_y=78;
 
-  x_size=Menu_factor_X*5; // |_ Taille d'une case
-  y_size=Menu_factor_Y*5; // |  de la trame zoomée
+  x_size=5; // |_ Taille d'une case
+  y_size=5; // |  de la trame zoomée
 
   // On efface de contenu précédent
-  Block(origin_x,origin_y,
-        Menu_factor_X*Window_special_button_list->Width,
-        Menu_factor_Y*Window_special_button_list->Height,MC_Light);
+  Window_rectangle(origin_x,origin_y,
+        Window_special_button_list->Width,
+        Window_special_button_list->Height,MC_Light);
 
   for (y_pos=0; y_pos<Sieve_height; y_pos++)
     for (x_pos=0; x_pos<Sieve_width; x_pos++)
     {
       // Bordures de la case
-      Block(origin_x+(x_pos*x_size),
-            origin_y+((y_pos+1)*y_size)-Menu_factor_Y,
-            x_size, Menu_factor_Y,MC_Dark);
-      Block(origin_x+((x_pos+1)*x_size)-Menu_factor_X,
+      Window_rectangle(origin_x+(x_pos*x_size),
+            origin_y+((y_pos+1)*y_size)-1,
+            x_size, 1,MC_Dark);
+      Window_rectangle(origin_x+((x_pos+1)*x_size)-1,
             origin_y+(y_pos*y_size),
-            Menu_factor_X, y_size-1,MC_Dark);
+            1, y_size-1,MC_Dark);
       // Contenu de la case
-      Block(origin_x+(x_pos*x_size), origin_y+(y_pos*y_size),
-            x_size-Menu_factor_X, y_size-Menu_factor_Y,
+      Window_rectangle(origin_x+(x_pos*x_size), origin_y+(y_pos*y_size),
+            x_size-1, y_size-1,
             (Sieve[x_pos][y_pos])?MC_White:MC_Black);
     }
 
   // Dessiner la preview de la trame
-  x_size=Menu_factor_X*51; // |_ Taille de la fenêtre
-  y_size=Menu_factor_Y*71; // |  de la preview
+  x_size=51; // |_ Taille de la fenêtre
+  y_size=71; // |  de la preview
   for (y_pos=0; y_pos<y_size; y_pos++)
     for (x_pos=0; x_pos<x_size; x_pos++)
-      Pixel(start_x+x_pos,start_y+y_pos,(Sieve[x_pos%Sieve_width][y_pos%Sieve_height])?MC_White:MC_Black);
-  Update_rect(start_x,start_y,x_size,y_size);
+      Pixel_in_window(start_x+x_pos,start_y+y_pos,(Sieve[x_pos%Sieve_width][y_pos%Sieve_height])?MC_White:MC_Black);
+  Update_window_area(start_x,start_y,x_size,y_size);
 }
 
 
@@ -986,22 +984,14 @@ void Draw_preset_sieve_patterns(void)
 {
   short index;
   short i,j;
-  //short x_size,y_size;
-  short Zoom;
-  
-  Zoom=Min(Menu_factor_X,Menu_factor_Y);
-  
-  //x_size=1;//Menu_factor_X/Pixel_height;
-  //y_size=1;//Menu_factor_Y/Pixel_width;
 
   for (index=0; index<12; index++)
-    for (j=0; j<16*Menu_factor_Y/Zoom; j++)
-      for (i=0; i<16*Menu_factor_X/Zoom; i++)
-        Block(((index*23+10)*Menu_factor_X)+i*Zoom+Window_pos_X,
-          (22*Menu_factor_Y)+j*Zoom+Window_pos_Y,Zoom,Zoom,
+    for (j=0; j<16; j++)
+      for (i=0; i<16; i++)
+        Pixel_in_window(10+index*23+i, 22+j,
           ((Gfx->Sieve_pattern[index][j&0xF]>>(15-(i&0xF)))&1)?MC_White:MC_Black);
 
-  Update_rect(ToWinX(10),ToWinY(22),ToWinL(12*23+16),ToWinH(16));
+  Update_window_area(10,22,12*23+16,16);
 }
 
 
@@ -1029,7 +1019,7 @@ void Invert_trame(void)
 // Rafraichit toute la zone correspondant à la trame zoomee.
 void Update_sieve_area(short x, short y)
 {
-  Update_rect(x,y,80*Menu_factor_X,80*Menu_factor_Y);
+  Update_window_area(x,y,80,80);
 }
 
 
@@ -1041,8 +1031,8 @@ void Button_Sieve_menu(void)
   short y_pos;
   short old_x_pos=0;
   short old_y_pos=0;
-  short origin_x;
-  short origin_y;
+  short origin_x=143;
+  short origin_y=69;
   static byte default_bg_color=0;
   T_Normal_button * button_bg_color;
   char  str[3];
@@ -1050,20 +1040,11 @@ void Button_Sieve_menu(void)
   short old_sieve_width=Sieve_width;
   short old_sieve_height=Sieve_height;
   byte  old_sieve[16][16];
-  short preview_x_start; // |  Données précalculées
-  short preview_y_start; // |_ pour la preview
-  short preview_x_end;   // |  => plus grande
-  short preview_y_end;   // |  rapidité.
 
 
   memcpy(old_sieve,Sieve,256);
 
   Open_window(290,179,"Sieve");
-
-  preview_x_start=Window_pos_X+(Menu_factor_X*230);
-  preview_y_start=Window_pos_Y+(Menu_factor_Y*78);
-  preview_x_end=preview_x_start+(Menu_factor_X*51);
-  preview_y_end=preview_y_start+(Menu_factor_Y*71);
 
   Window_display_frame      (  7, 65,130,43);
   Window_display_frame      (  7,110,130,43);
@@ -1075,37 +1056,34 @@ void Button_Sieve_menu(void)
   Print_in_window( 23,120,"Width:" ,MC_Dark,MC_Light);
   Print_in_window( 15,136,"Height:",MC_Dark,MC_Light);
 
-  Window_set_special_button(143,69,80,80);                     // 1
+  Window_set_special_button(origin_x,origin_y,80,80);                     // 1
 
   Window_set_normal_button(175,157,51,14,"Cancel",0,1,KEY_ESC); // 2
-  Window_set_normal_button(230,157,51,14,"OK"    ,0,1,SDLK_RETURN); // 3
+  Window_set_normal_button(230,157,51,14,"OK"    ,0,1,K2K(SDLK_RETURN)); // 3
 
-  Window_set_normal_button(  8,157,51,14,"Clear" ,1,1,SDLK_c); // 4
-  Window_set_normal_button( 63,157,51,14,"Invert",1,1,SDLK_i); // 5
+  Window_set_normal_button(  8,157,51,14,"Clear" ,1,1,K2K(SDLK_c)); // 4
+  Window_set_normal_button( 63,157,51,14,"Invert",1,1,K2K(SDLK_i)); // 5
 
-  Window_set_normal_button(  8,46,131,14,"Get from brush"   ,1,1,SDLK_g); // 6
-  Window_set_normal_button(142,46,139,14,"Transfer to brush",1,1,SDLK_t); // 7
+  Window_set_normal_button(  8,46,131,14,"Get from brush"   ,1,1,K2K(SDLK_g)); // 6
+  Window_set_normal_button(142,46,139,14,"Transfer to brush",1,1,K2K(SDLK_t)); // 7
 
-  Window_set_normal_button(109,114,11,11,"\030",0,1,SDLK_UP|MOD_SHIFT); // 8
-  Window_set_normal_button(109,138,11,11,"\031",0,1,SDLK_DOWN|MOD_SHIFT); // 9
-  Window_set_normal_button( 97,126,11,11,"\033",0,1,SDLK_LEFT|MOD_SHIFT); // 10
-  Window_set_normal_button(121,126,11,11,"\032",0,1,SDLK_RIGHT|MOD_SHIFT); // 11
-  button_bg_color = Window_set_normal_button(109,126,11,11,""    ,0,1,SDLK_INSERT); // 12
-  Block(Window_pos_X+(Menu_factor_X*(button_bg_color->Pos_X+2)),
-        Window_pos_Y+(Menu_factor_Y*(button_bg_color->Pos_Y+2)),
-        Menu_factor_X*7, Menu_factor_Y*7, (default_bg_color)?MC_White:MC_Black);
+  Window_set_normal_button(109,114,11,11,"\030",0,1,K2K(SDLK_UP)|MOD_SHIFT); // 8
+  Window_set_normal_button(109,138,11,11,"\031",0,1,K2K(SDLK_DOWN)|MOD_SHIFT); // 9
+  Window_set_normal_button( 97,126,11,11,"\033",0,1,K2K(SDLK_LEFT)|MOD_SHIFT); // 10
+  Window_set_normal_button(121,126,11,11,"\032",0,1,K2K(SDLK_RIGHT)|MOD_SHIFT); // 11
+  button_bg_color = Window_set_normal_button(109,126,11,11,""    ,0,1,K2K(SDLK_INSERT)); // 12
+  Window_rectangle(button_bg_color->Pos_X+2,
+        button_bg_color->Pos_Y+2,
+        7, 7, (default_bg_color)?MC_White:MC_Black);
 
-  Window_set_repeatable_button(109, 69,11,11,"\030",0,1,SDLK_UP); // 13
-  Window_set_repeatable_button(109, 93,11,11,"\031",0,1,SDLK_DOWN); // 14
-  Window_set_repeatable_button( 97, 81,11,11,"\033",0,1,SDLK_LEFT); // 15
-  Window_set_repeatable_button(121, 81,11,11,"\032",0,1,SDLK_RIGHT); // 16
+  Window_set_repeatable_button(109, 69,11,11,"\030",0,1,K2K(SDLK_UP)); // 13
+  Window_set_repeatable_button(109, 93,11,11,"\031",0,1,K2K(SDLK_DOWN)); // 14
+  Window_set_repeatable_button( 97, 81,11,11,"\033",0,1,K2K(SDLK_LEFT)); // 15
+  Window_set_repeatable_button(121, 81,11,11,"\032",0,1,K2K(SDLK_RIGHT)); // 16
 
   for (index=0; index<12; index++)
-    Window_set_normal_button((index*23)+8,20,20,20,"",0,1,SDLK_F1+index); // 17 -> 28
+    Window_set_normal_button((index*23)+8,20,20,20,"",0,1,K2K(SDLK_F1)+index); // 17 -> 28
   Draw_preset_sieve_patterns();
-
-  origin_x=Window_pos_X+(Menu_factor_X*Window_special_button_list->Pos_X);
-  origin_y=Window_pos_Y+(Menu_factor_Y*Window_special_button_list->Pos_Y);
 
   Num2str(Sieve_width,str,2);
   Print_in_window(71,120,str,MC_Black,MC_Light);
@@ -1121,8 +1099,8 @@ void Button_Sieve_menu(void)
   {
     clicked_button=Window_clicked_button();
 
-    origin_x=Window_pos_X+(Menu_factor_X*Window_special_button_list->Pos_X);
-    origin_y=Window_pos_Y+(Menu_factor_Y*Window_special_button_list->Pos_Y);
+    origin_x=Window_special_button_list->Pos_X;
+    origin_y=Window_special_button_list->Pos_Y;
 
 
     switch (clicked_button)
@@ -1142,32 +1120,23 @@ void Button_Sieve_menu(void)
           if ( (x_pos<Sieve_width) && (y_pos<Sieve_height) )
         }
         */
-        x_pos=(Mouse_X-origin_x)/(Menu_factor_X*5);
-        y_pos=(Mouse_Y-origin_y)/(Menu_factor_Y*5);
+        x_pos=(((short)Mouse_X-Window_pos_X)/Menu_factor_X-origin_x)/5;
+        y_pos=(((short)Mouse_Y-Window_pos_Y)/Menu_factor_Y-origin_y)/5;
         if ( (x_pos<Sieve_width) && (y_pos<Sieve_height) )
         {
           temp=(Mouse_K==LEFT_SIDE);
           if ( (x_pos!=old_x_pos) || (y_pos!=old_y_pos)
             || (Sieve[x_pos][y_pos]!=temp) )
           {
-            old_x_pos=x_pos;
-            old_y_pos=y_pos;
             Sieve[x_pos][y_pos]=temp;
-            x_pos=Menu_factor_X*5;
-            y_pos=Menu_factor_Y*5;
             Hide_cursor();
-            if (temp)
-              temp=MC_White;
-            else
-              temp=MC_Black;
             // Affichage du pixel dans la fenêtre zoomée
-            Block(origin_x+(old_x_pos*x_pos), origin_y+(old_y_pos*y_pos),
-                  x_pos-Menu_factor_X, y_pos-Menu_factor_Y, temp);
+            Window_rectangle(origin_x+x_pos, origin_y+y_pos, 4, 4, temp?MC_White:MC_Black);
             // Mise à jour de la preview
             Draw_sieve_scaled(origin_x,origin_y);
             Display_cursor();
             // Maj de la case seule
-            Update_rect(origin_x+(old_x_pos*x_pos), origin_y+(old_y_pos*y_pos),Menu_factor_X*5,Menu_factor_Y*5);
+            Update_window_area(origin_x+x_pos, origin_y+y_pos,5,5);
           }
         }
         break;
@@ -1209,14 +1178,14 @@ void Button_Sieve_menu(void)
         break;
 
       case  7 : // Transfer to brush
-      
+
         if (Realloc_brush(Sieve_width, Sieve_height, NULL, NULL))
           break;
-        
+
         for (y_pos=0; y_pos<Sieve_height; y_pos++)
           for (x_pos=0; x_pos<Sieve_width; x_pos++)
             *(Brush_original_pixels + y_pos * Brush_width + x_pos) = (Sieve[x_pos][y_pos])?Fore_color:Back_color;
-        
+
         // Grab palette
         memcpy(Brush_original_palette, Main_palette,sizeof(T_Palette));
         // Remap (no change)
@@ -1224,7 +1193,7 @@ void Button_Sieve_menu(void)
 
         Brush_offset_X=(Brush_width>>1);
         Brush_offset_Y=(Brush_height>>1);
-        
+
         Change_paintbrush_shape(PAINTBRUSH_SHAPE_COLOR_BRUSH);
         break;
 
@@ -1287,15 +1256,15 @@ void Button_Sieve_menu(void)
       case 12 : // Toggle octets insérés
         Hide_cursor();
         default_bg_color=!default_bg_color;
-        Block(Window_pos_X+(Menu_factor_X*(button_bg_color->Pos_X+2)),
-              Window_pos_Y+(Menu_factor_Y*(button_bg_color->Pos_Y+2)),
-              Menu_factor_X*7, Menu_factor_Y*7, (default_bg_color)?MC_White:MC_Black);
+        Window_rectangle(button_bg_color->Pos_X+2,
+              button_bg_color->Pos_Y+2,
+              7, 7, (default_bg_color)?MC_White:MC_Black);
         Display_cursor();
-        Update_rect(
-          Window_pos_X+(Menu_factor_X*(button_bg_color->Pos_X+2)),
-          Window_pos_Y+(Menu_factor_Y*(button_bg_color->Pos_Y+2)),
-          Menu_factor_X*7,
-          Menu_factor_Y*7);
+        Update_window_area(
+          button_bg_color->Pos_X+2,
+          button_bg_color->Pos_Y+2,
+          7,
+          7);
 
         break;
 

@@ -2,6 +2,7 @@
 */
 /*  Grafx2 - The Ultimate 256-color bitmap paint program
 
+    Copyright 2014 Sergii Pylypenko
     Copyright 2008 Yves Rizoud
     Copyright 2007 Adrien Destugues
     Copyright 1996-2001 Sunset Design (Guillaume Dorme & Karl Maritaud)
@@ -27,6 +28,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <math.h>
 
 #include "const.h"
@@ -49,6 +51,9 @@
 #elif defined(__AROS__)
 #include <proto/iffparse.h>
 #include <datatypes/textclass.h>
+#endif
+#if defined(__ANDROID__)
+#include <SDL_screenkeyboard.h>
 #endif
 
 // Virtual keyboard is ON by default on these platforms:
@@ -186,11 +191,11 @@ void Cleanup_string(char* str, int input_type)
 void Display_whole_string(word x_pos,word y_pos,char * str,byte position)
 {
   char cursor[2];
-  Print_general(x_pos,y_pos,str,TEXT_COLOR,BACKGROUND_COLOR);
+  Print_in_window(x_pos,y_pos,str,TEXT_COLOR,BACKGROUND_COLOR);
 
   cursor[0]=str[position] ? str[position] : ' ';
   cursor[1]='\0';
-  Print_general(x_pos+(position<<3)*Menu_factor_X,y_pos,cursor,CURSOR_COLOR,CURSOR_BACKGROUND_COLOR);
+  Print_in_window(x_pos+(position<<3),y_pos,cursor,CURSOR_COLOR,CURSOR_BACKGROUND_COLOR);
 }
 
 void Init_virtual_keyboard(word y_pos, word keyboard_width, word keyboard_height)
@@ -227,7 +232,7 @@ void Init_virtual_keyboard(word y_pos, word keyboard_width, word keyboard_height
 // TODO X11 and others
 char* getClipboard()
 {
-#ifdef __WIN32__
+#if defined(__WIN32__FIXME)
     char* dst = NULL;
     SDL_SysWMinfo info;
     HWND SDL_Window;
@@ -364,8 +369,7 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
   byte position;
   byte size;
   word input_key=0;
-  word window_x=Window_pos_X;
-  word window_y=Window_pos_Y;
+  word input_character=0;
   byte offset=0; // index du premier caractère affiché
   
   // Virtual keyboard
@@ -373,18 +377,18 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
   static byte caps_lock=0;
   word keymapping[] =
   {
-    SDLK_CLEAR,SDLK_BACKSPACE,SDLK_RETURN,KEY_ESC,
+    K2K(SDLK_CLEAR),K2K(SDLK_BACKSPACE),K2K(SDLK_RETURN),KEY_ESC,
     '0','1','2','3','4','5','6','7','8','9','.',',',
     'Q','W','E','R','T','Y','U','I','O','P',
     'A','S','D','F','G','H','J','K','L',
-    SDLK_CAPSLOCK,'Z','X','C','V','B','N','M',' ',
+    K2K(SDLK_CAPSLOCK),'Z','X','C','V','B','N','M',' ',
     '-','+','*','/','|','\\',
     '(',')','{','}','[',']',
     '_','=','<','>','%','@',
     ':',';','`','\'','"','~',
     '!','?','^','&','#','$'
   };
-
+  SDL_StartTextInput();
   // Si on a commencé à editer par un clic-droit, on vide la chaine.
   if (Mouse_K==RIGHT_SIDE)
     str[0]='\0';
@@ -400,6 +404,10 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
     //  Nothing. The caller should have initialized a valid hexa number.
   }
   
+#if defined(__ANDROID__)
+	SDL_ANDROID_GetScreenKeyboardTextInput(str, max_size);
+	input_key = K2K(SDLK_RETURN);
+#else
   // Virtual keyboards
   if (Config.Use_virtual_keyboard==1 ||
     (VIRT_KEY_DEFAULT_ON && Config.Use_virtual_keyboard==0))
@@ -511,11 +519,10 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
   Hide_cursor();
 
   // Effacement de la chaîne
-  Block(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-        visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3),BACKGROUND_COLOR);
-  Update_rect(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-        visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3));
-
+  Windows_open -= use_virtual_keyboard;
+  Window_rectangle(x_pos,y_pos,visible_size<<3,8,BACKGROUND_COLOR);
+  Update_window_area(x_pos,y_pos,visible_size<<3,8);
+  
   // Mise à jour des variables se rapportant à la chaîne en fonction de la chaîne initiale
   strcpy(initial_string,str);
 
@@ -531,9 +538,9 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
   if (visible_size + offset + 1 < size )
     display_string[visible_size-1]=RIGHT_TRIANGLE_CHARACTER;
   
-  Display_whole_string(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),display_string,position - offset);
-  Update_rect(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-        visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3));
+  Display_whole_string(x_pos,y_pos,display_string,position - offset);
+  Update_window_area(x_pos,y_pos,visible_size<<3,8);
+  Windows_open += use_virtual_keyboard;
   Flush_update();
   if (Mouse_K)
   {
@@ -542,7 +549,7 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
     Hide_cursor();
   }
 
-  while ((input_key!=SDLK_RETURN) && (input_key!=KEY_ESC))
+  while ((input_key!=K2K(SDLK_RETURN)) && (input_key!=KEY_ESC))
   {
     Display_cursor();
     if (use_virtual_keyboard)
@@ -550,14 +557,16 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
       int clicked_button;
 
       clicked_button=Window_clicked_button();
-      input_key=Key_ANSI;
+      input_key=Key;
+      input_character=Key_ANSI;
 
       if (clicked_button==-1)
-        input_key=SDLK_RETURN;
+        input_key=K2K(SDLK_RETURN);
       else if (clicked_button>0)
       {
-        input_key=keymapping[clicked_button-1];
-        if (input_key==SDLK_CAPSLOCK)
+        input_character=keymapping[clicked_button-1];
+        input_key=input_character;
+        if (input_key==K2K(SDLK_CAPSLOCK))
         {
           // toggle uppercase
           caps_lock=!caps_lock;
@@ -565,18 +574,18 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
           Print_in_window(8, 49,caps_lock?"\036":"\037", MC_Black,MC_Light);
           Display_cursor();
         }
-        else if (input_key==SDLK_BACKSPACE)
+        else if (input_key==K2K(SDLK_BACKSPACE))
         {
           // A little hack: the button for backspace will:
           // - backspace if the cursor is at end of string
           // - delete otherwise
           // It's needed for those input boxes that are completely full.
           if (position<size)
-            input_key = SDLK_DELETE;
+            input_key = K2K(SDLK_DELETE);
         }
         else if (input_key>='A' && input_key<='Z' && !caps_lock)
         {
-          input_key+='a'-'A';
+          input_character+='a'-'A';
         }
       }
     }
@@ -585,9 +594,10 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
       do
       {
         Get_input(20);
-        input_key=Key_ANSI;
+        input_key=Key;
+        input_character=Key_ANSI;
         if (Mouse_K)
-          input_key=SDLK_RETURN;
+          input_key=K2K(SDLK_RETURN);
 
         // Handle paste request on CTRL+v
         if (Key == SHORTCUT_PASTE)
@@ -615,38 +625,42 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
           goto affichage;
         }
         
-      } while(input_key==0);
+      } while(input_key==0 && input_character==0);
     }
     Hide_cursor();
 
     switch (input_key)
     {
-      case SDLK_DELETE : // Suppr.
+      case K2K(SDLK_DELETE) : // Suppr.
             if (position<size)
             {
               Remove_character(str,position);
               size--;
               
               // Effacement de la chaîne
-              Block(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-                    visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3),BACKGROUND_COLOR);
+              Windows_open -= use_virtual_keyboard;
+              Window_rectangle(x_pos,y_pos,visible_size<<3,8,BACKGROUND_COLOR);
+              Windows_open += use_virtual_keyboard;
               goto affichage;
             }
       break;
-      case SDLK_LEFT : // Gauche
+      case K2K(SDLK_LEFT) : // Gauche
             if (position>0)
             {
               // Effacement de la chaîne
               if (position==size)
-                Block(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-                      visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3),BACKGROUND_COLOR);
+              {
+                Windows_open -= use_virtual_keyboard;
+                Window_rectangle(x_pos,y_pos,visible_size<<3,8,BACKGROUND_COLOR);
+                Windows_open += use_virtual_keyboard;
+              }
               position--;
               if (offset > 0 && (position == 0 || position < (offset + 1)))
                 offset--;
               goto affichage;
             }
       break;
-      case SDLK_RIGHT : // Droite
+      case K2K(SDLK_RIGHT) : // Droite
             if ((position<size) && (position<max_size-1))
             {
               position++;
@@ -657,19 +671,22 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
               goto affichage;
             }
       break;
-      case SDLK_HOME : // Home
+      case K2K(SDLK_HOME) : // Home
             if (position)
             {
               // Effacement de la chaîne
               if (position==size)
-                Block(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-                      visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3),BACKGROUND_COLOR);
+              {
+                Windows_open -= use_virtual_keyboard;
+                Window_rectangle(x_pos,y_pos,visible_size<<3,8,BACKGROUND_COLOR);
+                Windows_open += use_virtual_keyboard;
+              }
               position = 0;
               offset = 0;
               goto affichage;
             }
       break;
-      case SDLK_END : // End
+      case K2K(SDLK_END) : // End
             if ((position<size) && (position<max_size-1))
             {
               position=(size<max_size)?size:size-1;
@@ -678,7 +695,7 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
               goto affichage;
             }
       break;
-      case  SDLK_BACKSPACE : // Backspace : combinaison de gauche + suppr
+      case  K2K(SDLK_BACKSPACE) : // Backspace : combinaison de gauche + suppr
 
         if (position)
         {       
@@ -688,19 +705,21 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
           Remove_character(str,position);
           size--;
           // Effacement de la chaîne
-          Block(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-                visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3),BACKGROUND_COLOR);
+          Windows_open -= use_virtual_keyboard;
+          Window_rectangle(x_pos,y_pos,visible_size<<3,8,BACKGROUND_COLOR);
+          Windows_open += use_virtual_keyboard;
           goto affichage;
         }
         break;
-      case  SDLK_CLEAR : // Clear
+      case  K2K(SDLK_CLEAR) : // Clear
         str[0]='\0';
         position=offset=0;
         // Effacement de la chaîne
-        Block(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-              visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3),BACKGROUND_COLOR);
+        Windows_open -= use_virtual_keyboard;
+        Window_rectangle(x_pos,y_pos,visible_size<<3,8,BACKGROUND_COLOR);
+        Windows_open += use_virtual_keyboard;
         goto affichage;
-      case SDLK_RETURN :
+      case K2K(SDLK_RETURN) :
         break;
         
       case KEY_ESC :
@@ -708,44 +727,46 @@ byte Readline_ex(word x_pos,word y_pos,char * str,byte visible_size,byte max_siz
         strcpy(str,initial_string);
         size=strlen(str);
         break;
-      default :
+    }
+      
+    if (input_character && size<max_size)
+    {
+      // Si la touche était autorisée...
+      byte is_authorized = Valid_character(input_character, input_type);
+      if (is_authorized == 1 || (is_authorized == 2 && position == 0 && str[position] != '-'))
+      {
+        // ... alors on l'insère ...
+        Insert_character(str,input_character,position/*,size*/);
+        // ce qui augmente la taille de la chaine
+        size++;
+        // et qui risque de déplacer le curseur vers la droite
         if (size<max_size)
         {
-          // Si la touche était autorisée...
-          byte is_authorized = Valid_character(input_key, input_type);
-          if (is_authorized == 1 || (is_authorized == 2 && position == 0 && str[position] != '-'))
-          {
-            // ... alors on l'insère ...
-            Insert_character(str,input_key,position/*,size*/);
-            // ce qui augmente la taille de la chaine
-            size++;
-            // et qui risque de déplacer le curseur vers la droite
-            if (size<max_size)
-            {
-              position++;
-              if (display_string[position-offset]==RIGHT_TRIANGLE_CHARACTER || position-offset>=visible_size)
-                offset++;
-            }
-            // Enfin, on raffiche la chaine
-            goto affichage;
-          } // End du test d'autorisation de touche
-        } // End du test de place libre
-        break;
+          position++;
+          if (display_string[position-offset]==RIGHT_TRIANGLE_CHARACTER || position-offset>=visible_size)
+            offset++;
+        }
+        // Enfin, on raffiche la chaine
+        goto affichage;
+      } // End du test d'autorisation de touche
+    } // End du test de place libre
+    if (0)
+    {
+      affichage:
+      Windows_open -= use_virtual_keyboard;
+      size=strlen(str);
+      // Formatage d'une partie de la chaine (si trop longue pour tenir)
+      strncpy(display_string, str + offset, visible_size);
+      display_string[visible_size]='\0';
+      if (offset>0)
+        display_string[0]=LEFT_TRIANGLE_CHARACTER;
+      if (visible_size + offset + 0 < size )
+        display_string[visible_size-1]=RIGHT_TRIANGLE_CHARACTER;
       
-affichage:
-        size=strlen(str);
-        // Formatage d'une partie de la chaine (si trop longue pour tenir)
-        strncpy(display_string, str + offset, visible_size);
-        display_string[visible_size]='\0';
-        if (offset>0)
-          display_string[0]=LEFT_TRIANGLE_CHARACTER;
-        if (visible_size + offset + 0 < size )
-          display_string[visible_size-1]=RIGHT_TRIANGLE_CHARACTER;
-        
-        Display_whole_string(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),display_string,position - offset);
-        Update_rect(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-        visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3));
-    } // End du "switch(input_key)"
+      Display_whole_string(x_pos,y_pos,display_string,position - offset);
+      Update_window_area(x_pos,y_pos,visible_size<<3,8);
+      Windows_open += use_virtual_keyboard;
+    }
     Flush_update();
 
   } // End du "while"
@@ -757,10 +778,9 @@ affichage:
     Mouse_K=old_mouse_k;
     Input_sticky_control=0;
   }
-  
+#endif // defined(__ANDROID__)  
   // Effacement de la chaîne
-  Block(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-        visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3),BACKGROUND_COLOR);
+  Window_rectangle(x_pos,y_pos,visible_size<<3,8,BACKGROUND_COLOR);
   // On raffiche la chaine correctement
   if (input_type==INPUT_TYPE_INTEGER)
   {
@@ -789,10 +809,10 @@ affichage:
   {
     Print_in_window_limited(x_pos,y_pos,str,visible_size,TEXT_COLOR,BACKGROUND_COLOR);
   }
-  Update_rect(window_x+(x_pos*Menu_factor_X),window_y+(y_pos*Menu_factor_Y),
-        visible_size*(Menu_factor_X<<3),(Menu_factor_Y<<3));
-
-  return (input_key==SDLK_RETURN);
+  Update_window_area(x_pos,y_pos,visible_size<<3,8);
+  
+  SDL_StopTextInput();
+  return (input_key==K2K(SDLK_RETURN));
 }
 
 void Sprint_double(char *str, double value, byte decimal_places, byte min_positions)

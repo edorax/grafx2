@@ -45,7 +45,6 @@ void Clear_current_image_with_stencil(byte color, byte * stencil);
 dword Round_div(dword numerator,dword divisor);
 word Count_used_colors(dword * usage);
 word Count_used_colors_area(dword* usage, word start_x, word start_y, word width, word height);
-word Count_used_colors_screen_area(dword* usage, word start_x, word start_y, word width, word height);
 void Pixel_in_brush             (word x,word y,byte color);
 byte Read_pixel_from_spare_screen(word x,word y);
 byte Read_pixel_from_backup_screen   (word x,word y);
@@ -133,7 +132,6 @@ void Rotate_180_deg_lowlevel(byte *src, short width, short height);
 /// @param y_flipped  Boolean, true to flip the image vertically
 void Rescale(byte *src_buffer, short src_width, short src_height, byte *dst_buffer, short dst_width, short dst_height, short x_flipped, short y_flipped);
 
-void Zoom_a_line(byte * original_line,byte * zoomed_line,word factor,word width);
 void Copy_part_of_image_to_another(byte * source,word source_x,word source_y,word width,word height,word source_width,byte * dest,word dest_x,word dest_y,word destination_width);
 
 // -- Gestion du chrono --

@@ -133,7 +133,7 @@ void Load_CM5(T_IO_Context *);
 void Save_CM5(T_IO_Context *);
 
 // -- XPM (X PixMap)
-// Loading is done through SDL_Image 
+// Loading is done through SDL_Image
 void Save_XPM(T_IO_Context*);
 
 // -- PNG -------------------------------------------------------------------
@@ -147,7 +147,7 @@ void Save_PNG(T_IO_Context *);
 // (TGA, BMP, PNM, XPM, XCF, PCX, GIF, JPG, TIF, IFF, PNG, ICO)
 void Load_SDL_Image(T_IO_Context *);
 
-// ENUM     Name  TestFunc LoadFunc SaveFunc PalOnly Comment Layers Ext Exts  
+// ENUM     Name  TestFunc LoadFunc SaveFunc PalOnly Comment Layers Ext Exts
 T_Format File_formats[] = {
   {FORMAT_ALL_IMAGES, "(all)", NULL, NULL, NULL, 0, 0, 0, "", "gif;png;bmp;pcx;pkm;iff;lbm;ilbm;img;sci;scq;scf;scn;sco;pi1;pc1;cel;neo;kcf;pal;c64;koa;koala;fli;bml;cdu;prg;tga;pnm;xpm;xcf;jpg;jpeg;tif;tiff;ico;cm5"},
   {FORMAT_ALL_FILES, "(*.*)", NULL, NULL, NULL, 0, 0, 0, "", "*"},
@@ -187,59 +187,52 @@ void Set_pixel(T_IO_Context *context, short x_pos, short y_pos, byte color)
   // Clipping
   if ((x_pos>=context->Width) || (y_pos>=context->Height))
     return;
-    
+
   switch (context->Type)
   {
     // Chargement des pixels dans l'écran principal
     case CONTEXT_MAIN_IMAGE:
       Pixel_in_current_screen(x_pos,y_pos,color);
       break;
-      
+
     // Chargement des pixels dans la brosse
     case CONTEXT_BRUSH:
       //Pixel_in_brush(x_pos,y_pos,color);
       *(context->Buffer_image + y_pos * context->Pitch + x_pos)=color;
       break;
-      
+
     // Chargement des pixels dans la preview
     case CONTEXT_PREVIEW:
       // Skip pixels of transparent index if :
       // it's a layer above the first one
       if (color == context->Transparent_color && context->Current_layer > 0)
         break;
-      
+
       if (((x_pos % context->Preview_factor_X)==0) && ((y_pos % context->Preview_factor_Y)==0))
       {
-        // Tag the color as 'used'
-        context->Preview_usage[color]=1;
-        
         // Store pixel
-        if (context->Ratio == PIXEL_WIDE && 
-          Pixel_ratio != PIXEL_WIDE &&
-          Pixel_ratio != PIXEL_WIDE2)
+        if (context->Ratio == PIXEL_WIDE)
         {
-          context->Preview_bitmap[x_pos/context->Preview_factor_X*2 + (y_pos/context->Preview_factor_Y)*PREVIEW_WIDTH*Menu_factor_X]=color;
-          context->Preview_bitmap[x_pos/context->Preview_factor_X*2+1 + (y_pos/context->Preview_factor_Y)*PREVIEW_WIDTH*Menu_factor_X]=color;
+          Rectangle_on_texture(Window_texture, context->Preview_pos_X + x_pos/context->Preview_factor_X*2, context->Preview_pos_Y + y_pos/context->Preview_factor_Y, 2, 1, context->Palette[color], 255, SDL_BLENDMODE_NONE);
         }
-        else if (context->Ratio == PIXEL_TALL && 
-          Pixel_ratio != PIXEL_TALL &&
-          Pixel_ratio != PIXEL_TALL2)
+        else if (context->Ratio == PIXEL_TALL)
         {
-          context->Preview_bitmap[x_pos/context->Preview_factor_X + (y_pos/context->Preview_factor_Y*2)*PREVIEW_WIDTH*Menu_factor_X]=color;
-          context->Preview_bitmap[x_pos/context->Preview_factor_X + (y_pos/context->Preview_factor_Y*2+1)*PREVIEW_WIDTH*Menu_factor_X]=color;
+          Rectangle_on_texture(Window_texture, context->Preview_pos_X + x_pos/context->Preview_factor_X, context->Preview_pos_Y + y_pos/context->Preview_factor_Y*2, 1, 2, context->Palette[color], 255, SDL_BLENDMODE_NONE);
         }
         else
-          context->Preview_bitmap[x_pos/context->Preview_factor_X + (y_pos/context->Preview_factor_Y)*PREVIEW_WIDTH*Menu_factor_X]=color;
+        {
+          Rectangle_on_texture(Window_texture, context->Preview_pos_X + x_pos/context->Preview_factor_X, context->Preview_pos_Y + y_pos/context->Preview_factor_Y, 1, 1, context->Palette[color], 255, SDL_BLENDMODE_NONE);
+        }
       }
 
       break;
-      
+
     // Load pixels in a SDL_Surface
     case CONTEXT_SURFACE:
       if (x_pos>=0 && y_pos>=0 && x_pos<context->Surface->w && y_pos<context->Surface->h)
         *(((byte *)(context->Surface->pixels)) + context->Surface->pitch * y_pos + x_pos) = color;
       break;
-  
+
   }
 
 }
@@ -251,7 +244,7 @@ void Fill_canvas(T_IO_Context *context, byte color)
     case CONTEXT_PREVIEW:
       if (context->Current_layer!=0)
         return;
-      memset(context->Preview_bitmap, color, PREVIEW_WIDTH*PREVIEW_HEIGHT*Menu_factor_X*Menu_factor_Y);
+      Window_rectangle(context->Preview_pos_X, context->Preview_pos_Y, PREVIEW_WIDTH, PREVIEW_HEIGHT, context->Palette[color]);
       break;
     case CONTEXT_MAIN_IMAGE:
       memset(
@@ -267,37 +260,15 @@ void Fill_canvas(T_IO_Context *context, byte color)
   }
 }
 
-void Palette_loaded(T_IO_Context *context)
-{
-  // Update the current screen to the loaded palette
-  switch (context->Type)
-  {
-    case CONTEXT_MAIN_IMAGE:
-    case CONTEXT_PREVIEW:
-    case CONTEXT_BRUSH:
-    case CONTEXT_SURFACE:
-      break;
-  }
-
-  switch (context->Type)
-  {
-    case CONTEXT_PREVIEW:      
-    case CONTEXT_MAIN_IMAGE:
-    case CONTEXT_BRUSH:
-    case CONTEXT_SURFACE:
-      break;
-  }
-}
-
 // Chargement des pixels dans le buffer 24b
 void Set_pixel_24b(T_IO_Context *context, short x_pos, short y_pos, byte r, byte g, byte b)
 {
-  byte color;
-  
+  T_Components rgb;
+
   // Clipping
   if (x_pos<0 || y_pos<0 || x_pos>=context->Width || y_pos>=context->Height)
     return;
-        
+
   switch(context->Type)
   {
     case CONTEXT_MAIN_IMAGE:
@@ -305,26 +276,22 @@ void Set_pixel_24b(T_IO_Context *context, short x_pos, short y_pos, byte r, byte
     case CONTEXT_SURFACE:
       {
         int index;
-        
+
         index=(y_pos*context->Width)+x_pos;
         context->Buffer_image_24b[index].R=r;
         context->Buffer_image_24b[index].G=g;
         context->Buffer_image_24b[index].B=b;
       }
       break;
-      
+
     case CONTEXT_PREVIEW:
-      
+
       if (((x_pos % context->Preview_factor_X)==0) && ((y_pos % context->Preview_factor_Y)==0))
       {
-        color=((r >> 5) << 5) |
-                ((g >> 5) << 2) |
-                ((b >> 6));
-        
-        // Tag the color as 'used'
-        context->Preview_usage[color]=1;
-        
-        context->Preview_bitmap[x_pos/context->Preview_factor_X + (y_pos/context->Preview_factor_Y)*PREVIEW_WIDTH*Menu_factor_X]=color;
+        rgb.R = r;
+        rgb.G = g;
+        rgb.B = b;
+        Rectangle_on_texture(Window_texture, context->Preview_pos_X + x_pos/context->Preview_factor_X, context->Preview_pos_Y + y_pos/context->Preview_factor_Y, 1, 1, rgb, 255, SDL_BLENDMODE_NONE);
       }
       break;
   }
@@ -383,17 +350,13 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
   context->Nb_layers = 1;
   context->Transparent_color=0;
   context->Background_transparent=0;
-  
+
   switch(context->Type)
   {
     // Preview
     case CONTEXT_PREVIEW:
       // Préparation du chargement d'une preview:
-      
-      context->Preview_bitmap=calloc(1, PREVIEW_WIDTH*PREVIEW_HEIGHT*Menu_factor_X*Menu_factor_Y);
-      if (!context->Preview_bitmap)
-        File_error=1;
-            
+
       // Affichage des données "Image size:"
       if ((width<10000) && (height<10000))
       {
@@ -406,7 +369,7 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
       {
         Print_in_window(143,59,"VERY BIG!",MC_Black,MC_Light);
       }
-  
+
       // Affichage de la taille du fichier
       if (file_size<1048576)
       {
@@ -426,7 +389,7 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
         // Le fichier fait plus de 100 Mega octets (cas très rare :))
         Print_in_window(236,59,"LARGE!!",MC_Black,MC_Light);
       }
-  
+
       // Affichage du vrai format
       if (format!=Selector->Format_filter)
       {
@@ -435,20 +398,16 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
 
       // On efface le commentaire précédent
       Window_rectangle(45,70,32*8,8,MC_Light);
-  
+
       // Calcul des données nécessaires à l'affichage de la preview:
-      if (ratio == PIXEL_WIDE && 
-          Pixel_ratio != PIXEL_WIDE &&
-          Pixel_ratio != PIXEL_WIDE2)
+      if (ratio == PIXEL_WIDE)
         width*=2;
-      else if (ratio == PIXEL_TALL && 
-          Pixel_ratio != PIXEL_TALL &&
-          Pixel_ratio != PIXEL_TALL2)
+      else if (ratio == PIXEL_TALL)
         height*=2;
-      
+
       context->Preview_factor_X=Round_div_max(width,120*Menu_factor_X);
       context->Preview_factor_Y=Round_div_max(height, 80*Menu_factor_Y);
-  
+
       if ( (!Config.Maximize_preview) && (context->Preview_factor_X!=context->Preview_factor_Y) )
       {
         if (context->Preview_factor_X>context->Preview_factor_Y)
@@ -456,19 +415,19 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
         else
           context->Preview_factor_X=context->Preview_factor_Y;
       }
-  
-      context->Preview_pos_X=Window_pos_X+183*Menu_factor_X;
-      context->Preview_pos_Y=Window_pos_Y+ 95*Menu_factor_Y;
-  
+
+      context->Preview_pos_X=183*Menu_factor_X;
+      context->Preview_pos_Y=95*Menu_factor_Y;
+
       // On nettoie la zone où va s'afficher la preview:
       Window_rectangle(183,95,PREVIEW_WIDTH,PREVIEW_HEIGHT,MC_Light);
-      
+
       // Un update pour couvrir les 4 zones: 3 libellés plus le commentaire
       Update_window_area(45,48,256,30);
       // Zone de preview
       Update_window_area(183,95,PREVIEW_WIDTH,PREVIEW_HEIGHT);
       break;
-      
+
     // Other loading
     case CONTEXT_MAIN_IMAGE:
       if (Backup_new_image(1,width,height))
@@ -476,13 +435,13 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
         // La nouvelle page a pu être allouée, elle est pour l'instant pleine
         // de 0s. Elle fait Main_image_width de large.
         // Normalement tout va bien, tout est sous contrôle...
-        
+
         // Load into layer 0, by default.
         context->Nb_layers=1;
         Main_current_layer=0;
         Main_layers_visible=1<<0;
         Set_loading_layer(context,0);
-        
+
         // Remove previous comment, unless we load just a palette
         if (! Get_fileformat(context->Format)->Palette_only)
           context->Comment[0]='\0';
@@ -496,7 +455,7 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
         File_error=1; // 1 => On n'a pas perdu l'image courante
       }
       break;
-      
+
     case CONTEXT_BRUSH:
       context->Buffer_image = (byte *)malloc(width*height);
       if (! context->Buffer_image)
@@ -505,11 +464,11 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
         return;
       }
       context->Target_address=context->Buffer_image;
-      
+
       break;
-      
+
     case CONTEXT_SURFACE:
-      context->Surface = SDL_CreateRGBSurface(SDL_SWSURFACE|SDL_SRCCOLORKEY, width, height, 8, 0, 0, 0, 0);
+      context->Surface = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 8, 0, 0, 0, 0);
       if (! context->Surface)
       {
         File_error=1;
@@ -522,12 +481,12 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
 
   if (File_error)
     return;
-    
+
   // Extra process for truecolor images
   if (truecolor)
   {
     //context->Is_truecolor = 1;
-    
+
     switch(context->Type)
     {
       case CONTEXT_MAIN_IMAGE:
@@ -545,11 +504,9 @@ void Pre_load(T_IO_Context *context, short width, short height, long file_size, 
           File_error=1;
         }
         break;
-      
+
       case CONTEXT_PREVIEW:
-        // Load palette
-        Set_palette_fake_24b(context->Palette);
-        Palette_loaded(context);
+        // Palette is ignored so far
         break;
     }
   }
@@ -587,7 +544,7 @@ void Load_image(T_IO_Context *context)
   T_Format *format = &(File_formats[2]); // Format du fichier à charger
   int i;
   byte old_cursor_shape;
-  
+
   // Not sure it's the best place...
   context->Color_cycles=0;
 
@@ -612,7 +569,7 @@ void Load_image(T_IO_Context *context)
       // Loadable format
       if (format->Test == NULL)
         continue;
-        
+
       // On appelle le testeur du format:
       format->Test(context);
       // On s'arrête si le fichier est au bon format:
@@ -620,7 +577,7 @@ void Load_image(T_IO_Context *context)
         break;
     }
   }
-  
+
   if (File_error)
   {
     context->Format = DEFAULT_FILEFORMAT;
@@ -628,7 +585,7 @@ void Load_image(T_IO_Context *context)
     Load_SDL_Image(context);
 
     if (File_error)
-    { 
+    {
       // Sinon, l'appelant sera au courant de l'échec grace à File_error;
       // et si on s'apprêtait à faire un chargement définitif de l'image (pas
       // une preview), alors on flash l'utilisateur.
@@ -653,7 +610,7 @@ void Load_image(T_IO_Context *context)
     if (context->Type!=CONTEXT_SURFACE)
       Error(0);
   }
-  
+
   // Post-load
 
   if (context->Buffer_image_24b)
@@ -672,15 +629,11 @@ void Load_image(T_IO_Context *context)
           Flush_update();
           if (Convert_24b_bitmap_to_256(Main_backups->Pages->Image[0].Pixels,context->Buffer_image_24b,context->Width,context->Height,context->Palette))
             File_error=2;
-          else
-          {
-            Palette_loaded(context);
-          }
           Hide_cursor();
           Cursor_shape=old_cursor_shape;
           Display_cursor();
           break;
-          
+
         case CONTEXT_BRUSH:
           // Cas d'un chargement dans la brosse
           old_cursor_shape=Cursor_shape;
@@ -698,7 +651,7 @@ void Load_image(T_IO_Context *context)
         case CONTEXT_PREVIEW:
           // nothing to do
           break;
-          
+
         case CONTEXT_SURFACE:
           if (Convert_24b_bitmap_to_256(context->Surface->pixels,context->Buffer_image_24b,context->Width,context->Height,context->Palette))
           File_error=1;
@@ -708,49 +661,6 @@ void Load_image(T_IO_Context *context)
     }
     free(context->Buffer_image_24b);
     context->Buffer_image_24b = NULL;
-  }
-  else if (context->Type == CONTEXT_MAIN_IMAGE)
-  {
-    // Non-24b main image: Add menu colors
-    if (Config.Safety_colors)
-    {
-      dword color_usage[256];
-      memset(color_usage,0,sizeof(color_usage));
-      if (Count_used_colors(color_usage)<252)
-      {
-        int gui_index;
-        // From white to black
-        for (gui_index=3; gui_index>=0; gui_index--)
-        {
-          int c;
-          T_Components gui_color;
-          
-          gui_color=*Favorite_GUI_color(gui_index);
-          // Try find a very close match (ignore last 2 bits)
-          for (c=255; c>=0; c--)
-          {
-            if ((context->Palette[c].R|3) == (gui_color.R|3)
-             && (context->Palette[c].G|3) == (gui_color.G|3) 
-             && (context->Palette[c].B|3) == (gui_color.B|3) )
-             break;
-          }
-          if (c<0) // Not found
-          {
-            // Find an unused slot at end of palette
-            for (c=255; c>=0; c--)
-            {
-              if (color_usage[c]==0)
-              {
-                context->Palette[c]=gui_color;
-                // Tag as a used color
-                color_usage[c]=1;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
   }
 
   if (context->Type == CONTEXT_MAIN_IMAGE)
@@ -782,16 +692,16 @@ void Load_image(T_IO_Context *context)
           strcpy(Main_backups->Pages->Filename,context->File_name);
           strcpy(Main_backups->Pages->File_directory,context->File_directory);
         }
-        
+
         // On considère que l'image chargée n'est plus modifiée
         Main_image_is_modified=0;
         // Et on documente la variable Main_fileformat avec la valeur:
         Main_fileformat=format->Identifier;
-  
+
         // already done initially on Backup_with_new_dimensions
         //Main_image_width= context->Width;
         //Main_image_height= context->Height;
-        
+
         if (Main_backups->Pages->Image_mode == IMAGE_MODE_ANIMATION)
         {
           Main_current_layer = 0;
@@ -801,11 +711,11 @@ void Load_image(T_IO_Context *context)
           Main_current_layer = context->Nb_layers - 1;
           Main_layers_visible = (2<<Main_current_layer)-1;
         }
-        
+
         // Load the transparency data
         Main_backups->Pages->Transparent_color = context->Transparent_color;
         Main_backups->Pages->Background_transparent = context->Background_transparent;
-  
+
         // Correction des dimensions
         if (Main_image_width<1)
           Main_image_width=1;
@@ -822,7 +732,7 @@ void Load_image(T_IO_Context *context)
           Main_backups->Pages->Gradients->Range[i].Inverse=context->Cycle_range[i].Inverse;
           Main_backups->Pages->Gradients->Range[i].Speed=context->Cycle_range[i].Speed;
         }
-        
+
         // Comment
         strcpy(Main_backups->Pages->Comment, context->Comment);
 
@@ -844,7 +754,7 @@ void Load_image(T_IO_Context *context)
   }
   else if (context->Type == CONTEXT_BRUSH && File_error==0)
   {
-    
+
     if (Realloc_brush(context->Width, context->Height, context->Buffer_image, NULL))
     {
       File_error=3;
@@ -862,101 +772,39 @@ void Load_image(T_IO_Context *context)
       // Copy the palette
       SDL_Color colors[256];
       int i;
-      
+
       for (i=0; i<256; i++)
       {
         colors[i].r=context->Palette[i].R;
         colors[i].g=context->Palette[i].G;
         colors[i].b=context->Palette[i].B;
       }
-      SDL_SetColors(context->Surface, colors, 0, 256);
+      Set_surface_palette(context->Surface, colors);
     }
   }
   else if (context->Type == CONTEXT_PREVIEW
     /*&& !context->Buffer_image_24b*/
     /*&& !Get_fileformat(context->Format)->Palette_only*/)
   {
-  
-    // Try to adapt the palette to accomodate the GUI.
-    int c;
-    int count_unused;
-    byte unused_color[4];
-    
-    count_unused=0;
-    // Try find 4 unused colors and insert good colors there
-    for (c=255; c>=0 && count_unused<4; c--)
-    {
-      if (!context->Preview_usage[c])
-      {
-        unused_color[count_unused]=c;
-        count_unused++;
-      }
-    }
-    // Found! replace them with some favorites
-    if (count_unused==4)
-    {
-      int gui_index;
-      for (gui_index=0; gui_index<4; gui_index++)
-      {
-        context->Palette[unused_color[gui_index]]=*Favorite_GUI_color(gui_index);
-      }
-    }
-    // All preview display is here
-    
-    // Update palette and screen first
-    Compute_optimal_menu_colors(context->Palette);
-    Remap_screen_after_menu_colors_change();
-    Set_palette(context->Palette);
-    
     // Display palette preview
     if (Get_fileformat(context->Format)->Palette_only)
     {
       short index;
-    
+
       if (context->Type == CONTEXT_PREVIEW)
         for (index=0; index<256; index++)
-          Window_rectangle(183+(index/16)*7,95+(index&15)*5,5,5,index);
-    
+          Window_rectangle(183+(index/16)*7,95+(index&15)*5,5,5,context->Palette[index]);
     }
-    // Display normal image
-    else if (context->Preview_bitmap)
-    {
-      int x_pos,y_pos;
-      int width,height;
-      width=context->Width/context->Preview_factor_X;
-      height=context->Height/context->Preview_factor_Y;
-      if (context->Ratio == PIXEL_WIDE && 
-          Pixel_ratio != PIXEL_WIDE &&
-          Pixel_ratio != PIXEL_WIDE2)
-        width*=2;
-      else if (context->Ratio == PIXEL_TALL && 
-          Pixel_ratio != PIXEL_TALL &&
-          Pixel_ratio != PIXEL_TALL2)
-        height*=2;
-      
-      for (y_pos=0; y_pos<height;y_pos++)
-        for (x_pos=0; x_pos<width;x_pos++)
-        {
-          byte color=context->Preview_bitmap[x_pos+y_pos*PREVIEW_WIDTH*Menu_factor_X];
 
-          // Skip transparent if image has transparent background.
-          if (color == context->Transparent_color && context->Background_transparent)
-            color=MC_Window;
-
-          Pixel(context->Preview_pos_X+x_pos,
-                context->Preview_pos_Y+y_pos,
-                color);
-        }
-    }    
     // Refresh modified part
     Update_window_area(183,95,PREVIEW_WIDTH,PREVIEW_HEIGHT);
-    
+
     // Preview comment
     Print_in_window(45,70,context->Comment,MC_Black,MC_Light);
     //Update_window_area(45,70,32*8,8);
 
   }
-  
+
 }
 
 
@@ -964,7 +812,7 @@ void Load_image(T_IO_Context *context)
 void Save_image(T_IO_Context *context)
 {
   T_Format *format;
-  
+
   // On place par défaut File_error à vrai au cas où on ne sache pas
   // sauver le format du fichier: (Est-ce vraiment utile??? Je ne crois pas!)
   File_error=1;
@@ -990,11 +838,11 @@ void Save_image(T_IO_Context *context)
         else // all other layer-based formats
         {
           int clicked_button;
-          
+
           Open_window(208,100,"Format warning");
           Print_in_window( 8, 20,"This file format doesn't",MC_Black,MC_Light);
           Print_in_window( 8, 30,"support layers.",MC_Black,MC_Light);
-          
+
           Window_set_normal_button(23,44, 162,14,"Save flattened copy",0,1,KEY_NONE); // 1
           Window_set_normal_button(23,62, 162,14,"Save current frame" ,0,1,KEY_NONE); // 2
           Window_set_normal_button(23,80, 162,14,"Cancel"             ,0,1,KEY_ESC);  // 3
@@ -1030,13 +878,13 @@ void Save_image(T_IO_Context *context)
         }
       }
       break;
-      
+
     case CONTEXT_BRUSH:
       break;
-      
+
     case CONTEXT_PREVIEW:
       break;
-      
+
     case CONTEXT_SURFACE:
       break;
   }
@@ -1050,11 +898,11 @@ void Save_image(T_IO_Context *context)
     Error(0);
     return;
   }
-}  
-   
-   
+}
+
+
 void Load_SDL_Image(T_IO_Context *context)
-{  
+{
   char filename[MAX_PATH_CHARACTERS]; // Nom complet du fichier
   word x_pos,y_pos;
   // long file_size;
@@ -1065,21 +913,21 @@ void Load_SDL_Image(T_IO_Context *context)
 
   Get_full_filename(filename, context->File_name, context->File_directory);
   File_error=0;
-  
+
   surface = IMG_Load(filename);
-  
+
   if (!surface)
   {
     File_error=1;
     return;
   }
-  
+
   file_size=File_length(filename);
-  
+
   if (surface->format->BytesPerPixel == 1)
   {
     // 8bpp image
-    
+
     Pre_load(context, surface->w, surface->h, file_size ,FORMAT_MISC, PIXEL_SIMPLE, 0);
 
     // Read palette
@@ -1087,7 +935,7 @@ void Load_SDL_Image(T_IO_Context *context)
     {
       Get_SDL_Palette(surface->format->palette, context->Palette);
     }
-    
+
     for (y_pos=0; y_pos<context->Height; y_pos++)
     {
       for (x_pos=0; x_pos<context->Width; x_pos++)
@@ -1103,7 +951,7 @@ void Load_SDL_Image(T_IO_Context *context)
       // Hi/Trucolor
       Pre_load(context, surface->w, surface->h, file_size ,FORMAT_ALL_IMAGES, PIXEL_SIMPLE, 1);
     }
-    
+
     for (y_pos=0; y_pos<context->Height; y_pos++)
     {
       for (x_pos=0; x_pos<context->Width; x_pos++)
@@ -1112,7 +960,7 @@ void Load_SDL_Image(T_IO_Context *context)
         Set_pixel_24b(
           context,
           x_pos,
-          y_pos, 
+          y_pos,
           ((pixel & surface->format->Rmask) >> surface->format->Rshift) << surface->format->Rloss,
           ((pixel & surface->format->Gmask) >> surface->format->Gshift) << surface->format->Gloss,
           ((pixel & surface->format->Bmask) >> surface->format->Bshift) << surface->format->Bloss);
@@ -1130,10 +978,10 @@ SDL_Surface * Load_surface(char *full_name, T_Gradient_array *gradients)
 {
   SDL_Surface * bmp=NULL;
   T_IO_Context context;
-  
+
   Init_context_surface(&context, full_name, "");
   Load_image(&context);
-  
+
   if (context.Surface)
   {
     bmp=context.Surface;
@@ -1141,7 +989,7 @@ SDL_Surface * Load_surface(char *full_name, T_Gradient_array *gradients)
     if (gradients != NULL)
     {
       int i;
-      
+
       memset(gradients, 0, sizeof(T_Gradient_array));
       for (i=0; i<context.Color_cycles; i++)
       {
@@ -1151,7 +999,7 @@ SDL_Surface * Load_surface(char *full_name, T_Gradient_array *gradients)
         gradients->Range[i].Speed=context.Cycle_range[i].Speed;
       }
     }
-  } 
+  }
   Destroy_context(&context);
 
   return bmp;
@@ -1173,7 +1021,7 @@ void Emergency_backup(const char *fname, byte *source, int width, int height, T_
 
   if (width == 0 || height == 0 || source == NULL)
     return;
-  
+
   strcpy(filename,Config_directory);
   strcat(filename,fname);
 
@@ -1223,12 +1071,12 @@ T_Format * Get_fileformat(byte format)
 {
   unsigned int i;
   T_Format * safe_default = File_formats;
-  
+
   for (i=0; i < Nb_known_formats(); i++)
   {
     if (File_formats[i].Identifier == format)
       return &(File_formats[i]);
-  
+
     if (File_formats[i].Identifier == FORMAT_GIF)
       safe_default=&(File_formats[i]);
   }
@@ -1248,7 +1096,6 @@ void Destroy_context(T_IO_Context *context)
 {
   free(context->Buffer_image_24b);
   free(context->Buffer_image);
-  free(context->Preview_bitmap);
   memset(context, 0, sizeof(T_IO_Context));
 }
 
@@ -1256,7 +1103,7 @@ void Destroy_context(T_IO_Context *context)
 void Init_context_preview(T_IO_Context * context, char *file_name, char *file_directory)
 {
   memset(context, 0, sizeof(T_IO_Context));
-  
+
   context->Type = CONTEXT_PREVIEW;
   context->File_name = file_name;
   context->File_directory = file_directory;
@@ -1273,9 +1120,9 @@ void Init_context_backup_image(T_IO_Context * context, char *file_name, char *fi
 void Init_context_layered_image(T_IO_Context * context, char *file_name, char *file_directory)
 {
   int i;
-  
+
   memset(context, 0, sizeof(T_IO_Context));
-  
+
   context->Type = CONTEXT_MAIN_IMAGE;
   context->File_name = file_name;
   context->File_directory = file_directory;
@@ -1295,7 +1142,7 @@ void Init_context_layered_image(T_IO_Context * context, char *file_name, char *f
     context->Ratio=PIXEL_SIMPLE;
   context->Target_address=Main_backups->Pages->Image[0].Pixels;
   context->Pitch=Main_image_width;
-  
+
   // Color cyling ranges:
   for (i=0; i<16; i++)
   {
@@ -1320,7 +1167,7 @@ void Init_context_layered_image(T_IO_Context * context, char *file_name, char *f
 void Init_context_brush(T_IO_Context * context, char *file_name, char *file_directory)
 {
   memset(context, 0, sizeof(T_IO_Context));
-  
+
   context->Type = CONTEXT_BRUSH;
   context->File_name = file_name;
   context->File_directory = file_directory;
@@ -1343,7 +1190,7 @@ void Init_context_brush(T_IO_Context * context, char *file_name, char *file_dire
 void Init_context_surface(T_IO_Context * context, char *file_name, char *file_directory)
 {
   memset(context, 0, sizeof(T_IO_Context));
-  
+
   context->Type = CONTEXT_SURFACE;
   context->File_name = file_name;
   context->File_directory = file_directory;
@@ -1399,7 +1246,7 @@ void Set_loading_layer(T_IO_Context *context, int layer)
     }
     Main_current_layer = layer;
     context->Target_address=Main_backups->Pages->Image[layer].Pixels;
-    
+
     Update_pixel_renderer();
   }
 }
@@ -1440,11 +1287,11 @@ void Add_backup_file(const char *name)
   T_String_list * elem;
   int i;
   char file_name[MAX_PATH_CHARACTERS];
-  
+
   // Only files names of the form a0000000.* and b0000000.* are expected
-  
+
   Extract_filename(file_name, name);
-  
+
   // Check first character
   if (file_name[0]==Main_safety_backup_prefix)
     list = &Backups_main;
@@ -1454,7 +1301,7 @@ void Add_backup_file(const char *name)
     // Not a good file
     return;
   }
-  
+
   // Check next characters till file extension
   i = 1;
   while (file_name[i]!='\0' && file_name[i]!='.')
@@ -1466,7 +1313,7 @@ void Add_backup_file(const char *name)
     }
     i++;
   }
-  
+
   // Add to list (top insertion)
   elem = (T_String_list *)malloc(sizeof(T_String_list));
   elem->String=strdup(file_name);
@@ -1514,23 +1361,23 @@ byte Process_backups(T_String_list **list)
   for (i=0;i<nb_files;i++)
   {
     T_String_list *next;
-    
+
     files_vector[i]=(*list)->String;
     next = (*list)->Next;
     free(*list);
     *list = next;
   }
-  
+
   // Sort the vector
   qsort (files_vector, nb_files , sizeof(char **), String_compare);
-  
+
   for (i=0; i < nb_files; i++)
   {
     // Load this file
     T_IO_Context context;
     char file_name[MAX_PATH_CHARACTERS]="";
     char file_directory[MAX_PATH_CHARACTERS]="";
-    
+
     Init_context_backup_image(&context, files_vector[i], Config_directory);
     // Provide buffers to read original location
     context.Original_file_name = file_name;
@@ -1549,10 +1396,10 @@ byte Process_backups(T_String_list **list)
   }
   free(files_vector);
   files_vector = NULL;
-  
+
   // Restore the maximum number of pages
   Config.Max_undo_pages = backup_max_undo_pages;
-  
+
   return nb_files;
 }
 
@@ -1567,25 +1414,25 @@ int Check_recovery(void)
 {
   int restored_spare;
   int restored_main;
-  
+
   // First check if can write backups
-#if defined (__MINT__) 
+#if defined (__MINT__)
    //TODO: enable file lock under Freemint only
    return 0;
-#else  
+#else
 if (Create_lock_file(Config_directory))
     return -1;
 #endif
 
   Safety_backup_active=1;
-    
+
   Backups_main = NULL;
   Backups_spare = NULL;
   For_each_file(Config_directory, Add_backup_file);
-  
+
   // Do the processing twice: once for possible backups of the main page,
-  // once for possible backups of the spare.  
-  
+  // once for possible backups of the spare.
+
   restored_spare = Process_backups(&Backups_spare);
   if (restored_spare)
   {
@@ -1597,7 +1444,7 @@ if (Create_lock_file(Config_directory))
       Button_Page();
   }
   restored_main = Process_backups(&Backups_main);
-  
+
   if (restored_main)
   {
     Main_offset_X=0;
@@ -1617,26 +1464,26 @@ void Rotate_safety_backups(void)
 
   if (!Safety_backup_active)
     return;
-    
+
   now = SDL_GetTicks();
   // It's time to save if either:
   // - Many edits have taken place
   // - A minimum number of edits have taken place AND a minimum time has passed
   // - At least one edit was done, and a maximum time has passed
   if ((Main_edits_since_safety_backup > Max_edits_for_safety_backup) ||
-      (Main_edits_since_safety_backup > Min_edits_for_safety_backup && 
+      (Main_edits_since_safety_backup > Min_edits_for_safety_backup &&
       now > Main_time_of_safety_backup + Min_interval_for_safety_backup) ||
-      (Main_edits_since_safety_backup > 1 && 
+      (Main_edits_since_safety_backup > 1 &&
       now > Main_time_of_safety_backup + Max_interval_for_safety_backup))
   {
-    
+
     // Clear a previous save (rotating saves)
     sprintf(deleted_file, "%s%c%6.6d" BACKUP_FILE_EXTENSION,
       Config_directory,
       Main_safety_backup_prefix,
       (Uint32)(Main_safety_number + 1000000l - Rotation_safety_backup) % (Uint32)1000000l);
     remove(deleted_file); // no matter if fail
-    
+
     // Reset counters
     Main_edits_since_safety_backup=0;
     Main_time_of_safety_backup=now;
@@ -1650,10 +1497,10 @@ void Rotate_safety_backups(void)
     // Provide original file data, to store as a GIF Application Extension
     context.Original_file_name = Main_backups->Pages->Filename;
     context.Original_file_directory = Main_backups->Pages->File_directory;
-    
+
     Save_image(&context);
     Destroy_context(&context);
-    
+
     Main_safety_number++;
   }
 }
@@ -1665,12 +1512,12 @@ void Delete_safety_backups(void)
 
   if (!Safety_backup_active)
     return;
-  
+
   Backups_main = NULL;
   Backups_spare = NULL;
-  
+
   For_each_file(Config_directory, Add_backup_file);
-  
+
   chdir(Config_directory);
   for (element=Backups_main; element!=NULL; element=element->Next)
   {
@@ -1682,12 +1529,12 @@ void Delete_safety_backups(void)
     if(remove(element->String))
       printf("Failed to delete %s\n",element->String);
   }
-  
+
   // Release lock file
-#if defined (__MINT__) 
+#if defined (__MINT__)
   //TODO: release file lock under Freemint only
-#else 
+#else
   Release_lock_file(Config_directory);
 #endif
-  
+
 }

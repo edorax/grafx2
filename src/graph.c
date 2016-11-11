@@ -39,13 +39,6 @@
 #include "graph.h"
 #include "misc.h"
 #include "pxsimple.h"
-#include "pxtall.h"
-#include "pxwide.h"
-#include "pxdouble.h"
-#include "pxtriple.h"
-#include "pxwide2.h"
-#include "pxtall2.h"
-#include "pxquad.h"
 #include "windows.h"
 #include "input.h"
 #include "brush.h"
@@ -115,7 +108,7 @@ void Update_part_of_screen(short x, short y, short width, short height)
 
   if(effective_Y + effective_h > Menu_Y)
     effective_h = Menu_Y - effective_Y;
-    
+
   /*
   SDL_Rect r;
   r.x=effective_X;
@@ -170,7 +163,6 @@ void Update_part_of_screen(short x, short y, short width, short height)
         return;
     }
 
-
  // Très utile pour le debug :)
     /*SDL_Rect r;
     r.x=effective_X;
@@ -178,29 +170,6 @@ void Update_part_of_screen(short x, short y, short width, short height)
     r.h=effective_h;
     r.w=effective_w;
     SDL_FillRect(Screen_SDL,&r,3);*/
-    
-    // When the grid is displayed in Tilemap mode, this tests if
-    // one edge of the grid has been touched :
-    // In this case, the whole magnified area requires a refreshed grid.
-    // This could be optimized further, but at the moment this seemed
-    // fast enough.
-    if (Show_grid && Main_tilemap_mode && (
-        x/Snap_width <(x+width )/Snap_width ||
-        y/Snap_height<(y+height)/Snap_height))
-    {
-      short w,h;
-      
-      w=Min(Screen_width-Main_X_zoom, (Main_image_width-Main_magnifier_offset_X)*Main_magnifier_factor);
-      h=Min(Menu_Y, (Main_image_height-Main_magnifier_offset_Y)*Main_magnifier_factor);
-
-      Redraw_grid(Main_X_zoom,0,w,h);
-      Update_rect(Main_X_zoom,0,w,h);
-    }
-    else
-    {
-      Redraw_grid(effective_X,effective_Y,effective_w,effective_h);
-      Update_rect(effective_X,effective_Y,effective_w,effective_h);
-    }
   }
 }
 
@@ -224,12 +193,12 @@ int Init_mode_video(int width, int height, int fullscreen, int pix_ratio)
   int pix_height;
   byte screen_changed;
   byte pixels_changed;
-  int absolute_mouse_x=Mouse_X*Pixel_width;
-  int absolute_mouse_y=Mouse_Y*Pixel_height;
+  int absolute_mouse_x=Mouse_X;
+  int absolute_mouse_y=Mouse_Y;
   static int Wrong_resize;
 
 try_again:
-  
+
   switch (pix_ratio)
   {
       default:
@@ -267,36 +236,25 @@ try_again:
       break;
   }
 
-  screen_changed = (Screen_width*Pixel_width!=width ||
-                    Screen_height*Pixel_height!=height ||
+  screen_changed = (Screen_width!=width ||
+                    Screen_height!=height ||
                     Video_mode[Current_resolution].Fullscreen != fullscreen);
 
   // Valeurs raisonnables: minimum 320x200
   if (!fullscreen)
   {
-    if (Wrong_resize>20 && (width < 320*pix_width || height < 200*pix_height))
-    {
-      if(pix_ratio != PIXEL_SIMPLE) {
-        pix_ratio = PIXEL_SIMPLE;
-        Verbose_message("Error!", "Your WM is forcing GrafX2 to resize to something "
-          "smaller than the minimal resolution.\n"
-          "GrafX2 switched to a smaller\npixel scaler to avoid problems                     ");
-        goto try_again;
-      }
-    }
-    
-    if (width > 320*pix_width && height > 200*pix_height)
+    if (width > 320*Menu_factor_X && height > 200*Menu_factor_Y)
       Wrong_resize = 0;
 
-    if (width < 320*pix_width)
+    if (width < 320*Menu_factor_X)
     {
-        width = 320*pix_width;
+        width = 320*Menu_factor_X;
         screen_changed=1;
         Wrong_resize++;
     }
-    if (height < 200*pix_height)
+    if (height < 200*Menu_factor_Y)
     {
-        height = 200*pix_height;
+        height = 200*Menu_factor_Y;
         screen_changed=1;
         Wrong_resize++;
     }
@@ -306,7 +264,7 @@ try_again:
   }
   else
   {
-    if (width < 320*pix_width || height < 200*pix_height)
+    if (width < 320*Menu_factor_X || height < 200*Menu_factor_Y)
       return 1;
   }
   // La largeur doit être un multiple de 4
@@ -315,79 +273,27 @@ try_again:
       width = (width + 15) & 0xFFFFFFF0;
   #else
       //width = (width + 3 ) & 0xFFFFFFFC;
-  #endif  
+  #endif
 
   pixels_changed = (Pixel_ratio!=pix_ratio);
-  
+
   if (!screen_changed && !pixels_changed)
     return 0;
   if (screen_changed)
   {
     Set_mode_SDL(&width, &height,fullscreen);
   }
-  
+
   if (screen_changed || pixels_changed)
   {
     Pixel_ratio=pix_ratio;
     Pixel_width=pix_width;
     Pixel_height=pix_height;
-    switch (Pixel_ratio)
-    {
-        default:
-        case PIXEL_SIMPLE:
-#define Display_line_on_screen_fast_simple Display_line_on_screen_simple
-#define SETPIXEL(x) \
-            Pixel = Pixel_##x ; \
-            Read_pixel= Read_pixel_##x ; \
-            Display_screen = Display_part_of_screen_##x ; \
-            Block = Block_##x ; \
-            Pixel_preview_normal = Pixel_preview_normal_##x ; \
-            Pixel_preview_magnifier = Pixel_preview_magnifier_##x ; \
-            Horizontal_XOR_line = Horizontal_XOR_line_##x ; \
-            Vertical_XOR_line = Vertical_XOR_line_##x ; \
-            Display_brush_color = Display_brush_color_##x ; \
-            Display_brush_mono = Display_brush_mono_##x ; \
-            Clear_brush = Clear_brush_##x ; \
-            Remap_screen = Remap_screen_##x ; \
-            Display_line = Display_line_on_screen_##x ; \
-            Display_line_fast = Display_line_on_screen_fast_##x ; \
-            Read_line = Read_line_screen_##x ; \
-            Display_zoomed_screen = Display_part_of_screen_scaled_##x ; \
-            Display_brush_color_zoom = Display_brush_color_zoom_##x ; \
-            Display_brush_mono_zoom = Display_brush_mono_zoom_##x ; \
-            Clear_brush_scaled = Clear_brush_scaled_##x ; \
-            Display_brush = Display_brush_##x ;
-			SETPIXEL(simple)
-        break;
-        case PIXEL_TALL:
-#define Display_line_on_screen_fast_tall Display_line_on_screen_tall
-			SETPIXEL(tall)
-        break;
-        case PIXEL_WIDE:
-			SETPIXEL(wide)
-        break;
-        case PIXEL_DOUBLE:
-			SETPIXEL(double)
-        break;
-        case PIXEL_TRIPLE:
-			SETPIXEL(triple)
-        break;
-        case PIXEL_WIDE2:
-			SETPIXEL(wide2)
-        break;
-        case PIXEL_TALL2:
-			SETPIXEL(tall2)
-        break;
-        case PIXEL_QUAD:
-			SETPIXEL(quad)
-        break;
-    }
   }
-  Screen_width = width/Pixel_width;
-  Screen_height = height/Pixel_height;
+  Screen_width = width;
+  Screen_height = height;
 
-  Clear_border(MC_Black); // Requires up-to-date Screen_* and Pixel_*
-
+  /*
   // Set menu size (software zoom)
   if (Screen_width/320 > Screen_height/200)
     factor=Screen_height/200;
@@ -411,19 +317,17 @@ try_again:
       Menu_factor_Y=1;
       break;
     default: // Stay below some reasonable size
-      if (factor>Max(Pixel_width,Pixel_height))
-        factor/=Max(Pixel_width,Pixel_height);
       Menu_factor_X=Min(factor,abs(Config.Ratio));
       Menu_factor_Y=Min(factor,abs(Config.Ratio));
   }
-  if (Pixel_height>Pixel_width && Screen_width>=Menu_factor_X*2*320)
-    Menu_factor_X*=2;
-  else if (Pixel_width>Pixel_height && Screen_height>=Menu_factor_Y*2*200)
-    Menu_factor_Y*=2;
-    
-  free(Horizontal_line_buffer);
-  Horizontal_line_buffer=(byte *)malloc(Pixel_width * 
-    ((Screen_width>Main_image_width)?Screen_width:Main_image_width));
+  */
+
+  // Clear previous menu textures
+  //for (index=0; index<MENUBAR_COUNT; index++)
+  //{
+  //  SDL_DestroyTexture(Menu_bars[index].Menu_texture);
+  //  Menu_bars[index].Menu_texture = NULL;
+  //}
 
   Set_palette(Main_palette);
 
@@ -432,8 +336,8 @@ try_again:
   {
     for (index=1; index<Nb_video_modes; index++)
     {
-      if (Video_mode[index].Width/Pixel_width==Screen_width &&
-          Video_mode[index].Height/Pixel_height==Screen_height)
+      if (Video_mode[index].Width==Screen_width &&
+          Video_mode[index].Height==Screen_height)
       {
         Current_resolution=index;
         break;
@@ -442,7 +346,7 @@ try_again:
   }
 
   Change_palette_cells();
-  
+
   Menu_Y = Screen_height;
   if (Menu_is_visible)
     Menu_Y -= Menu_height * Menu_factor_Y;
@@ -450,15 +354,15 @@ try_again:
 
   Adjust_mouse_sensitivity(fullscreen);
 
-  Mouse_X=absolute_mouse_x/Pixel_width;
+  Mouse_X=absolute_mouse_x;
   if (Mouse_X>=Screen_width)
     Mouse_X=Screen_width-1;
-  Mouse_Y=absolute_mouse_y/Pixel_height;
+  Mouse_Y=absolute_mouse_y;
   if (Mouse_Y>=Screen_height)
     Mouse_Y=Screen_height-1;
   if (fullscreen)
     Set_mouse_position();
-  
+
   Spare_offset_X=0; // |  Il faut penser à éviter les incohérences
   Spare_offset_Y=0; // |- de décalage du brouillon par rapport à
   Spare_magnifier_mode=0; // |  la résolution.
@@ -486,9 +390,7 @@ try_again:
     Position_screen_according_to_zoom();
   Compute_limits();
   Compute_paintbrush_coordinates();
-  
-  Resize_width=0;
-  Resize_height=0;
+
   return 0;
 }
 
@@ -571,7 +473,7 @@ void Remap_spare(void)
   // teintes.
   for (layer=0; layer<Spare_backups->Pages->Nb_layers; layer++)
     Remap_general_lowlevel(used,Spare_backups->Pages->Image[layer].Pixels,Spare_backups->Pages->Image[layer].Pixels,Spare_image_width,Spare_image_height,Spare_image_width);
-    
+
   // Change transparent color index
   Spare_backups->Pages->Transparent_color=used[Spare_backups->Pages->Transparent_color];
 }
@@ -588,11 +490,11 @@ void Get_colors_from_brush(void)
   int   image_color;
 
   //if (Confirmation_box("Modify current palette ?"))
-  
+
   // Backup with unchanged layers, only palette is modified
   Backup_layers(LAYER_NONE);
 
-  // Init array of new colors  
+  // Init array of new colors
   for (color=0;color<=255;color++)
     brush_used[color]=0;
 
@@ -603,7 +505,7 @@ void Get_colors_from_brush(void)
 
   // Check used colors in picture (to know which palette entries are free)
   Count_used_colors(usage);
-  
+
   // First pass : omit colors that are already in palette
   for (color=0; color<256; color++)
   {
@@ -618,20 +520,20 @@ void Get_colors_from_brush(void)
          && Brush_original_palette[color].B==Main_palette[image_color].B)
         {
           // Color already in main palette:
-          
+
           // Tag as used, so that no new color will overwrite it
           usage[image_color]=1;
 
           // Tag as non-new, to avoid it in pass 2
           brush_used[color]=0;
-          
+
           break;
         }
       }
     }
   }
-  
-  // Second pass : For each color to add, find an empty slot in 
+
+  // Second pass : For each color to add, find an empty slot in
   // main palette to add it
   image_color=0;
   for (color=0; color<256 && image_color<256; color++)
@@ -647,7 +549,7 @@ void Get_colors_from_brush(void)
           Main_palette[image_color].R=Brush_original_palette[color].R;
           Main_palette[image_color].G=Brush_original_palette[color].G;
           Main_palette[image_color].B=Brush_original_palette[color].B;
-          
+
           image_color++;
           break;
         }
@@ -907,7 +809,7 @@ void Fill_general(byte fill_color)
       if (Paintbrush_Y >= (Main_image_height-Snap_offset_Y)/Snap_height*Snap_height+Snap_offset_Y)
         return;
     }
-    
+
     // On suppose que le curseur est déjà caché.
     // Hide_cursor();
 
@@ -985,7 +887,7 @@ void Fill_general(byte fill_color)
     Limit_left=old_limit_left;
     Limit_top=old_limit_top;
     Limit_bottom=old_limit_bottom;
-  
+
     for (y_pos=top_reached;y_pos<=bottom_reached;y_pos++)
     {
       for (x_pos=left_reached;x_pos<=right_reached;x_pos++)
@@ -994,7 +896,7 @@ void Fill_general(byte fill_color)
 
         // First, restore the color.
         Pixel_in_current_screen(x_pos,y_pos,Read_pixel_from_backup_layer(x_pos,y_pos));
-          
+
         if (filled==2)
         {
           // Update the color according to the fill color and all effects
@@ -1005,21 +907,6 @@ void Fill_general(byte fill_color)
 
     // Restore original feedback value
     Update_FX_feedback(Config.FX_Feedback);
-
-    //   A la fin, on n'a pas besoin de réafficher le curseur puisque c'est
-    // l'appelant qui s'en charge, et on n'a pas besoin de rafficher l'image
-    // puisque les seuls points qui ont changé dans l'image ont été raffichés
-    // par l'utilisation de "Display_pixel()", et que les autres... eh bein
-    // on n'y a jamais touché à l'écran les autres: ils sont donc corrects.
-    if(Main_magnifier_mode)
-    {
-      short w,h;
-      
-      w=Min(Screen_width-Main_X_zoom, (Main_image_width-Main_magnifier_offset_X)*Main_magnifier_factor);
-      h=Min(Menu_Y, (Main_image_height-Main_magnifier_offset_Y)*Main_magnifier_factor);
-
-      Redraw_grid(Main_X_zoom,0,w,h);
-    }
 
     Update_rect(0,0,0,0);
     End_of_modification();
@@ -1048,7 +935,7 @@ void Fill_general(byte fill_color)
   {
     Draw_paintbrush(x_pos,y_pos,color);
     Permanent_draw_count ++;
-    
+
     // Check every 8 pixels
     if (! (Permanent_draw_count&7))
     {
@@ -1071,7 +958,7 @@ void Fill_general(byte fill_color)
          (y_pos<=Limit_bottom) )
     Display_pixel(x_pos,y_pos,color);
   }
-  
+
   // Affichage d'un point pour une preview
   void Pixel_figure_preview(word x_pos,word y_pos,byte color)
   {
@@ -1095,7 +982,7 @@ void Fill_general(byte fill_color)
   void Pixel_figure_preview_xor(short x_pos,short y_pos,byte color)
   {
     (void)color; // unused
-    
+
     if ( (x_pos>=Limit_left) &&
          (x_pos<=Limit_right) &&
          (y_pos>=Limit_top)   &&
@@ -1103,26 +990,26 @@ void Fill_general(byte fill_color)
       Pixel_preview(x_pos,y_pos,xor_lut[Read_pixel(x_pos-Main_offset_X,
                                            y_pos-Main_offset_Y)]);
   }
-  
+
   // Affichage d'un point pour une preview en xor additif
   // (Il lit la couleur depuis la page backup)
   void Pixel_figure_preview_xorback(word x_pos,word y_pos,byte color)
   {
     (void)color; // unused
-    
+
     if ( (x_pos>=Limit_left) &&
          (x_pos<=Limit_right) &&
          (y_pos>=Limit_top)   &&
          (y_pos<=Limit_bottom) )
       Pixel_preview(x_pos,y_pos,xor_lut[Main_screen[x_pos+y_pos*Main_image_width]]);
   }
-  
+
 
   // Effacement d'un point de preview
   void Pixel_figure_clear_preview(word x_pos,word y_pos,byte color)
   {
     (void)color; // unused
-    
+
     if ( (x_pos>=Limit_left) &&
          (x_pos<=Limit_right) &&
          (y_pos>=Limit_top)   &&
@@ -1275,7 +1162,7 @@ int Circle_squared_diameter(int diameter)
     return result-6;
   if (diameter==14)
     return result-4;
-  
+
   return result;
 }
 
@@ -1435,18 +1322,18 @@ void Clamp_coordinates_regular_angle(short ax, short ay, short* bx, short* by)
   float angle;
 
   dx = *bx-ax;
-  dy = *by-ay; 
+  dy = *by-ay;
 
   // No mouse move: no need to clamp anything
-  if (dx==0 || dy == 0) return; 
+  if (dx==0 || dy == 0) return;
 
   // Determine angle (heading)
   angle = atan2(dx, dy);
-    
+
   // Get absolute values, useful from now on:
   //dx=abs(dx);
   //dy=abs(dy);
-    
+
   // Negative Y
   if (angle < M_PI*(-15.0/16.0) || angle > M_PI*(15.0/16.0))
   {
@@ -1563,7 +1450,7 @@ void Draw_line_general(short start_x,short start_y,short end_x,short end_y, byte
   short incr_x,incr_y;
   short i,cumul;
   short delta_x,delta_y;
-  
+
   x_pos=start_x;
   y_pos=start_y;
 
@@ -1652,13 +1539,13 @@ void Draw_line_preview(short start_x,short start_y,short end_x,short end_y,byte 
 void Draw_line_preview_xor(short start_x,short start_y,short end_x,short end_y,byte color)
 {
   int w, h;
-  
+
   Pixel_figure=(Func_pixel)Pixel_figure_preview_xor;
   // Needed a cast because this function supports signed shorts,
   // (it's usually in image space), while this time it's in screen space
   // and some line endpoints can be out of screen.
   Draw_line_general(start_x,start_y,end_x,end_y,color);
-  
+
   if (start_x<Limit_left)
     start_x=Limit_left;
   if (start_y<Limit_top)
@@ -1667,8 +1554,8 @@ void Draw_line_preview_xor(short start_x,short start_y,short end_x,short end_y,b
     end_x=Limit_left;
   if (end_y<Limit_top)
     end_y=Limit_top;
-  // bottom & right limits are handled by Update_part_of_screen()  
-  
+  // bottom & right limits are handled by Update_part_of_screen()
+
   w = end_x-start_x;
   h = end_y-start_y;
   Update_part_of_screen((start_x<end_x)?start_x:end_x,(start_y<end_y)?start_y:end_y,abs(w)+1,abs(h)+1);
@@ -1720,7 +1607,7 @@ void Draw_empty_rectangle(short start_x,short start_y,short end_x,short end_y,by
 
   // On trace le rectangle:
   Init_permanent_draw();
-  
+
   for (x_pos=start_x;x_pos<=end_x;x_pos++)
   {
     Pixel_figure_permanent(x_pos,start_y,color);
@@ -1732,7 +1619,7 @@ void Draw_empty_rectangle(short start_x,short start_y,short end_x,short end_y,by
     Pixel_figure_permanent(start_x,y_pos,color);
     Pixel_figure_permanent(  end_x,y_pos,color);
   }
-    
+
 #if defined(__macosx__) || defined(__FreeBSD__)
   Update_part_of_screen(start_x,end_x,end_x-start_x,end_y-start_y);
 #endif
@@ -2296,14 +2183,14 @@ void Draw_grad_rectangle(short rax,short ray,short rbx,short rby,short vax,short
       Gradient_total_range = sqrt(pow(vby - vay,2)+pow(vbx - vax,2));
       a = (float)(vby - vay)/(float)(vbx - vax);
       b = vay - a*vax;
-      
+
       for (y_pos=ray;y_pos<=rby;y_pos++)
         for (x_pos = rax;x_pos<=rbx;x_pos++)
         {
           // On calcule ou on en est dans le dégradé
           distance_x = pow((y_pos - vay),2)+pow((x_pos - vax),2);
           distance_y = pow((-a * x_pos + y_pos - b),2)/(a*a+1);
-      
+
           Gradient_function((int)sqrt(distance_x - distance_y),x_pos,y_pos);
         }
     }
@@ -2552,7 +2439,7 @@ void Polyfill(int vertices, short * points, int color)
   // (pixels dessinés plus d'une fois) alors on force le FX Feedback à OFF
   Update_FX_feedback(0);
 
-  Pixel_figure=Pixel_clipped;    
+  Pixel_figure=Pixel_clipped;
   Polyfill_general(vertices,points,color);
 
   // Remarque: pour dessiner la bordure avec la brosse en cours au lieu
@@ -2586,7 +2473,7 @@ void Replace(byte new_color)
     {
       word x;
       word y;
-      
+
       // Update all pixels
       for (y=0; y<Main_image_height; y++)
         for (x=0; x<Main_image_width; x++)
@@ -2702,7 +2589,7 @@ byte No_effect(word x, word y, byte color)
 {
   (void)x; // unused
   (void)y; // unused
-  
+
   return color;
 }
 
@@ -2711,7 +2598,7 @@ byte No_effect(word x, word y, byte color)
 byte Effect_shade(word x,word y,byte color)
 {
   (void)color; // unused
-  
+
   return Shade_table[Read_pixel_from_feedback_screen(x,y)];
 }
 
@@ -2767,7 +2654,7 @@ byte Effect_quick_shade(word x,word y,byte color)
 byte Effect_tiling(word x,word y,byte color)
 {
   (void)color; // unused
-  
+
   return Read_pixel_from_brush((x+Brush_width-Tiling_offset_X)%Brush_width,
                                (y+Brush_height-Tiling_offset_Y)%Brush_height);
 }
@@ -2879,63 +2766,25 @@ byte Effect_layer_copy(word x,word y,byte color)
   return Read_pixel_from_feedback_screen(x,y);
 }
 
-void Horizontal_grid_line(word x_pos,word y_pos,word width)
-{
-  int x;
-
-  for (x=!(x_pos&1);x<width;x+=2)
-    Pixel(x_pos+x, y_pos, xor_lut[*((y_pos-1)*Pixel_height*VIDEO_LINE_WIDTH+x_pos*Pixel_width+Screen_pixels+x*Pixel_width)]);
-}
-
-void Vertical_grid_line(word x_pos,word y_pos,word height)
-{
-  int y;
-  
-  for (y=!(y_pos&1);y<height;y+=2)
-    Pixel(x_pos, y_pos+y, xor_lut[*(Screen_pixels+(x_pos*Pixel_width-1)+(y_pos*Pixel_height+y*Pixel_height)*VIDEO_LINE_WIDTH)]);
-}
-
-// Tile Grid
-void Redraw_grid(short x, short y, unsigned short w, unsigned short h)
-{
-  int row, col;
-  if (!Show_grid)
-    return;
-    
-  row=y+((Snap_height*1000-(y-0)/Main_magnifier_factor-Main_magnifier_offset_Y+Snap_offset_Y-1)%Snap_height)*Main_magnifier_factor+Main_magnifier_factor-1;
-  while (row < y+h)
-  {
-    Horizontal_grid_line(x, row, w);
-    row+= Snap_height*Main_magnifier_factor;
-  }
-  
-  col=x+((Snap_width*1000-(x-Main_X_zoom)/Main_magnifier_factor-Main_magnifier_offset_X+Snap_offset_X-1)%Snap_width)*Main_magnifier_factor+Main_magnifier_factor-1;
-  while (col < x+w)
-  {
-    Vertical_grid_line(col, y, h);
-    col+= Snap_width*Main_magnifier_factor;
-  }
-}
-
 byte Read_pixel_from_current_screen  (word x,word y)
 {
-  
+
   byte depth;
   byte color;
 
   if (Main_backups->Pages->Image_mode == IMAGE_MODE_ANIMATION)
   {
-    return *((y)*Main_image_width+(x)+Main_backups->Pages->Image[Main_current_layer].Pixels);  
+    return *((y)*Main_image_width+(x)+Main_backups->Pages->Image[Main_current_layer].Pixels);
   }
-  
-  if (Main_backups->Pages->Image_mode == IMAGE_MODE_MODE5)  
+
+  if (Main_backups->Pages->Image_mode == IMAGE_MODE_MODE5)
     if (Main_current_layer==4)
       return *(Main_backups->Pages->Image[Main_current_layer].Pixels + x+y*Main_image_width);
 
   color = *(Main_screen+y*Main_image_width+x);
   if (color != Main_backups->Pages->Transparent_color) // transparent color
     return color;
-  
+
   depth = *(Main_visible_image_depth_buffer.Image+x+y*Main_image_width);
   return *(Main_backups->Pages->Image[depth].Pixels + x+y*Main_image_width);
 }
@@ -2963,7 +2812,7 @@ void Pixel_in_screen_layered(word x,word y,byte color)
     if (color == Main_backups->Pages->Transparent_color) // transparent color
       // fetch pixel color from the topmost visible layer
       color=*(Main_backups->Pages->Image[depth].Pixels + x+y*Main_image_width);
-    
+
     *(x+y*Main_image_width+Main_screen)=color;
   }
 }
@@ -2978,9 +2827,9 @@ void Pixel_in_screen_layered_with_preview(word x,word y,byte color)
     if (color == Main_backups->Pages->Transparent_color) // transparent color
       // fetch pixel color from the topmost visible layer
       color=*(Main_backups->Pages->Image[depth].Pixels + x+y*Main_image_width);
-    
+
     *(x+y*Main_image_width+Main_screen)=color;
-    
+
     Pixel_preview(x,y,color);
   }
 }
@@ -2989,12 +2838,12 @@ void Pixel_in_screen_layered_with_preview(word x,word y,byte color)
 void Pixel_in_screen_underlay(word x,word y,byte color)
 {
   byte depth;
-    
+
   // Paste in layer
   *(Main_backups->Pages->Image[Main_current_layer].Pixels + x+y*Main_image_width)=color;
   // Search depth
   depth = *(Main_backups->Pages->Image[4].Pixels + x+y*Main_image_width);
-  
+
   if ( depth == Main_current_layer)
   {
     // Draw that color on the visible image buffer
@@ -3006,17 +2855,17 @@ void Pixel_in_screen_underlay(word x,word y,byte color)
 void Pixel_in_screen_underlay_with_preview(word x,word y,byte color)
 {
   byte depth;
-    
+
   // Paste in layer
   *(Main_backups->Pages->Image[Main_current_layer].Pixels + x+y*Main_image_width)=color;
   // Search depth
   depth = *(Main_backups->Pages->Image[4].Pixels + x+y*Main_image_width);
-  
+
   if ( depth == Main_current_layer)
   {
     // Draw that color on the visible image buffer
     *(x+y*Main_image_width+Main_screen)=color;
-    
+
     Pixel_preview(x,y,color);
   }
 }
@@ -3052,7 +2901,7 @@ void Pixel_in_screen_overlay_with_preview(word x,word y,byte color)
     	color=*(Main_backups->Pages->Image[color].Pixels + x+y*Main_image_width);
     // Draw that color on the visible image buffer
     *(x+y*Main_image_width+Main_screen)=color;
-    
+
     Pixel_preview(x,y,color);
   }
 }

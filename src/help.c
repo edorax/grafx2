@@ -88,7 +88,7 @@ const char * Keyboard_shortcut_value(word shortcut_number)
       return Key_name(pointer[0]);
     if (pointer[0] == 0 && pointer[1] != 0)
       return Key_name(pointer[1]);
-      
+
     strcpy(shortcuts_name, Key_name(pointer[0]));
     strcat(shortcuts_name, " or ");
     strcat(shortcuts_name, Key_name(pointer[1]));
@@ -110,7 +110,7 @@ void Redefine_control(word *shortcut, int x_pos, int y_pos)
       *shortcut=Key;
       return;
     }
-  }    
+  }
 }
 
 void Window_set_shortcut(int action_id)
@@ -121,7 +121,7 @@ void Window_set_shortcut(int action_id)
   short redraw_controls=1;
   word * shortcut_ptr=NULL;
   word backup_shortcut[2];
-  
+
   shortcut_ptr=Shortcut(action_id);
 
   backup_shortcut[0]=shortcut_ptr[0];
@@ -151,17 +151,15 @@ void Window_set_shortcut(int action_id)
   }
   */
   config_index=order_index; // Comprends pas... ça devrait pas marcher
-  
+
   Open_window(302,131,"Keyboard shortcut");
   Window_set_normal_button(181,111,55,14,"Cancel",0,1,KEY_ESC); // 1
-  Window_set_normal_button(241,111,55,14,"OK",0,1,SDLK_RETURN); // 2
+  Window_set_normal_button(241,111,55,14,"OK",0,1,K2K(SDLK_RETURN)); // 2
 
   Window_set_normal_button(6,111,111,14,"Reset default",0,1,KEY_NONE); // 3
 
   // Titre
-  Block(Window_pos_X+(Menu_factor_X*5),
-        Window_pos_Y+(Menu_factor_Y*16),
-        Menu_factor_X*292,Menu_factor_Y*11,MC_Black);
+  Window_rectangle(5,16,292,11,MC_Black);
   Print_in_window(7,18,ConfigKey[config_index].Label,MC_White,MC_Black);
 
   // Zone de description
@@ -184,21 +182,17 @@ void Window_set_shortcut(int action_id)
     if (redraw_controls)
     {
       Hide_cursor();
-      Block(Window_pos_X+(Menu_factor_X*32),
-            Window_pos_Y+(Menu_factor_Y*33),
-            Menu_factor_X*21*8,Menu_factor_Y*8,MC_Light);
+      Window_rectangle(32,33,21*8,8,MC_Light);
       Print_in_window_limited(32,33,Key_name(shortcut_ptr[0]),21,MC_Black,MC_Light);
-      Block(Window_pos_X+(Menu_factor_X*32),
-            Window_pos_Y+(Menu_factor_Y*52),
-            Menu_factor_X*21*8,Menu_factor_Y*8,MC_Light);
+      Window_rectangle(32,52,21*8,8,MC_Light);
       Print_in_window_limited(32,52,Key_name(shortcut_ptr[1]),21,MC_Black,MC_Light);
-    
-      Update_rect(Window_pos_X,Window_pos_Y,302*Menu_factor_X,131*Menu_factor_Y);
-    
+
+      Update_window_area(0,0,302,131);
+
       Display_cursor();
       redraw_controls=0;
     }
-    
+
     clicked_button=Window_clicked_button();
 
     switch (clicked_button)
@@ -261,7 +255,7 @@ void Window_set_shortcut(int action_id)
         break;
     }
   }
-  while ((clicked_button!=1) && (clicked_button!=2) && (Key!=SDLK_RETURN));
+  while ((clicked_button!=1) && (clicked_button!=2) && (Key!=K2K(SDLK_RETURN)));
   Key=0;
   Close_window();
   Display_cursor();
@@ -277,7 +271,7 @@ void Remove_duplicate_shortcuts(void)
   // The idea is that we, coders, append new shortcuts at the end with default
   // values; they take priority as they are new functions.
   for (action_1=NB_SHORTCUTS-1; action_1>0; action_1--)
-  { 
+  {
     int n;
     word *shortcut_1 = Shortcut(Ordering[action_1]);
     for (n=0; n<2; n++)
@@ -304,89 +298,46 @@ void Remove_duplicate_shortcuts(void)
 
 ///
 /// Print a line with the 'help' (6x8) font.
-short Print_help(short x_pos, short y_pos, const char *line, char line_type, short link_position, short link_size)
+void Print_help(short x_pos, short y_pos, const char *line, char line_type, short link_position, short link_size)
 {
-  short  width;             // Largeur physique d'une ligne de texte
-  short  x;                   // Indices d'affichage d'un caractère
-  short  y;
-  short  x_position;          // Parcours de remplissage du buffer de ligne
-  short  char_index; // Parcours des caractères d'une ligne
-  byte * char_pixel;
-  short  repeat_menu_x_factor;
-  short  repeat_menu_y_factor;
-  short  real_x_pos;
-  short  real_y_pos;
+  short  width;
+  short  char_index; // current printed character
 
-  real_x_pos=ToWinX(x_pos);
-  real_y_pos=ToWinY(y_pos);
-  
-  // Calcul de la taille
+  // Compute size
   width=strlen(line);
-  // Les lignes de titres prennent plus de place
+  // Title lines take more space
   if (line_type == 'T' || line_type == '-')
     width = width*2;
 
-  // Pour chaque ligne dans la fenêtre:
-  for (y=0;y<8;y++)
+  for (char_index=0;char_index<width;char_index++)
   {
-    x_position=0;
-    // On crée une nouvelle ligne à splotcher
-    for (char_index=0;char_index<width;char_index++)
+    SDL_Texture *texture = Gfx->Help_font_norm['!'];
+    if (line_type=='N' || line_type=='K')
+      texture = Gfx->Help_font_norm[(unsigned char)(line[char_index])];
+    else if (line_type=='S')
+      texture = Gfx->Help_font_bold[(unsigned char)(line[char_index])];
+    else if (line_type=='T' && line[char_index/2]<='_' && line[char_index/2]>=' ')
     {
-      // Recherche du caractère dans les fontes de l'aide.
-      // Ligne titre : Si l'indice est impair on dessine le quart de caractère
-      // qui va a gauche, sinon celui qui va a droite.
-      if (line_type=='T')
-      {
-        if (line[char_index/2]>'_' || line[char_index/2]<' ')
-          char_pixel=&(Gfx->Help_font_norm['!'][0][0]); // Caractère pas géré
-        else if (char_index & 1)
-          char_pixel=&(Gfx->Help_font_t2[(unsigned char)(line[char_index/2])-' '][0][0]);
-        else
-          char_pixel=&(Gfx->Help_font_t1[(unsigned char)(line[char_index/2])-' '][0][0]);
-      }
-      else if (line_type=='-')
-      {
-        if (line[char_index/2]>'_' || line[char_index/2]<' ')
-          char_pixel=&(Gfx->Help_font_norm['!'][0][0]); // Caractère pas géré
-        else if (char_index & 1)
-          char_pixel=&(Gfx->Help_font_t4[(unsigned char)(line[char_index/2])-' '][0][0]);
-        else
-          char_pixel=&(Gfx->Help_font_t3[(unsigned char)(line[char_index/2])-' '][0][0]);
-      }
-      else if (line_type=='S')
-        char_pixel=&(Gfx->Bold_font[(unsigned char)(line[char_index])][0][0]);
-      else if (line_type=='N' || line_type=='K')
-        char_pixel=&(Gfx->Help_font_norm[(unsigned char)(line[char_index])][0][0]);
+      if (char_index & 1)
+        texture = Gfx->Help_font_t2[(unsigned char)(line[char_index/2])-' '];
       else
-        char_pixel=&(Gfx->Help_font_norm['!'][0][0]); // Un garde-fou en cas de probleme
-        
-      for (x=0;x<6;x++)
-        for (repeat_menu_x_factor=0;repeat_menu_x_factor<Menu_factor_X;repeat_menu_x_factor++)
-        {
-          byte color = *(char_pixel+x+y*6);
-          byte repetition = Pixel_width-1;
-          // Surlignement pour liens
-          if (line_type=='K' && char_index>=link_position
-            && char_index<(link_position+link_size))
-          {
-            if (color == MC_Light)
-              color=MC_White;
-            else if (color == MC_Dark)
-              color=MC_Light;
-            else if (y<7)
-              color=MC_Dark;
-          }
-          Horizontal_line_buffer[x_position++]=color;
-          while (repetition--)
-            Horizontal_line_buffer[x_position++]=color;
-        }
+        texture = Gfx->Help_font_t1[(unsigned char)(line[char_index/2])-' '];
     }
-    // On la splotche
-    for (repeat_menu_y_factor=0;repeat_menu_y_factor<Menu_factor_Y;repeat_menu_y_factor++)
-      Display_line_fast(real_x_pos,real_y_pos++,width*Menu_factor_X*6,Horizontal_line_buffer);
+    else if (line_type=='-' && line[char_index/2]<='_' && line[char_index/2]>=' ')
+    {
+      if (char_index & 1)
+        texture = Gfx->Help_font_t4[(unsigned char)(line[char_index/2])-' '];
+      else
+        texture = Gfx->Help_font_t3[(unsigned char)(line[char_index/2])-' '];
+    }
+    Window_draw_texture(texture, (x_pos+char_index*6), y_pos, 6, 8);
   }
-  return width;
+  // Highlight link
+  if (line_type=='K')
+  {
+    Rectangle_on_texture(Window_texture, (x_pos+link_position*6)*Menu_factor_X, y_pos*Menu_factor_X, 6*link_size*Menu_factor_X, 8*Menu_factor_Y, MC_White, 64, SDL_BLENDMODE_ADD);
+  }
+  return;
 }
 
 
@@ -401,24 +352,22 @@ void Display_help(void)
   char   line_type;           // N: Normale, T: Titre, S: Sous-titre
                               // -: Ligne inférieur de sous-titre
   const char * line;
-  char   buffer[45];          // buffer texte utilisé pour formater les noms de 
+  char   buffer[45];          // buffer texte utilisé pour formater les noms de
                               // raccourcis clavier
   short  link_position=0;     // Position du premier caractère "variable"
   short  link_size=0;       // Taille de la partie variable
-  short width;
-  
+
+  Window_rectangle(x_pos,
+           y_pos,
+           (44)*6,
+           16*8,
+           MC_Black);
+
   for (line_index=0;line_index<16;line_index++)
   {
     // Shortcut au cas ou la section fait moins de 16 lignes
     if (line_index >= Help_section[Current_help_section].Length)
     {
-      Window_rectangle (x_pos,
-           y_pos + line_index*8,
-           44*6,
-           // 44 = Nb max de char (+1 pour éviter les plantages en mode X
-           // causés par une largeur = 0)
-           (16 - line_index)*8,
-           MC_Black);
       break;
     }
     // On affiche la ligne
@@ -455,15 +404,8 @@ void Display_help(void)
       }
       line = buffer;
     }
-    
-    width=Print_help(x_pos, y_pos+(line_index<<3), line, line_type, link_position, link_size);
-    // On efface la fin de la ligne:
-    if (width<44)
-      Window_rectangle (x_pos+width*6,
-           y_pos+(line_index<<3),
-           (44-width)*6,
-           8,
-           MC_Black);
+
+    Print_help(x_pos, y_pos+(line_index<<3), line, line_type, link_position, link_size);
   }
   Update_window_area(x_pos,y_pos,44*6,16*8);
 }
@@ -483,7 +425,7 @@ void Scroll_help(T_Scroller_button * scroller)
 void Button_Help(void)
 {
   short btn_number;
-  
+
   // Aide contextuelle
   if (Key!=0)
   {
@@ -527,25 +469,23 @@ void Window_help(int section, const char *sub_section)
 
   // dessiner de la fenêtre où va défiler le texte
   Window_display_frame_in(8,17,274,132);
-  Block(Window_pos_X+(Menu_factor_X*9),
-        Window_pos_Y+(Menu_factor_Y*18),
-        Menu_factor_X*272,Menu_factor_Y*130,MC_Black);
+  Window_rectangle(9, 18, 272, 130, MC_Black);
 
   Window_set_normal_button(266,153,35,14,"Exit",0,1,KEY_ESC); // 1
   scroller=Window_set_scroller_button(290,18,130,nb_lines,
                                   16,Help_position);   // 2
 
-  Window_set_normal_button(  9,154, 6*8,14,"About"  ,1,1,SDLK_a); // 3
+  Window_set_normal_button(  9,154, 6*8,14,"About"  ,1,1,K2K(SDLK_a)); // 3
 
-  Window_set_normal_button( 9+6*8+4,154, 8*8,14,"License",1,1,SDLK_l); // 4
-  Window_set_normal_button( 9+6*8+4+8*8+4,154, 5*8,14,"Help",1,1,SDLK_h); // 5
-  Window_set_normal_button(9+6*8+4+8*8+4+5*8+4,154, 8*8,14,"Credits",1,1,SDLK_c); // 6
+  Window_set_normal_button( 9+6*8+4,154, 8*8,14,"License",1,1,K2K(SDLK_l)); // 4
+  Window_set_normal_button( 9+6*8+4+8*8+4,154, 5*8,14,"Help",1,1,K2K(SDLK_h)); // 5
+  Window_set_normal_button(9+6*8+4+8*8+4+5*8+4,154, 8*8,14,"Credits",1,1,K2K(SDLK_c)); // 6
 
   Window_set_special_button(9,18,272,130); // 7
 
   Display_help();
 
-  Update_rect(Window_pos_X,Window_pos_Y,310*Menu_factor_X,175*Menu_factor_Y);
+  Update_window_area(0,0,310,175);
 
   Display_cursor();
 
@@ -606,19 +546,19 @@ void Window_help(int section, const char *sub_section)
     // Gestion des touches de déplacement dans la liste
     switch (Key)
     {
-      case SDLK_UP : // Haut
+      case K2K(SDLK_UP) : // Haut
         if (Help_position>0)
           Help_position--;
         Scroll_help(scroller);
         Key=0;
         break;
-      case SDLK_DOWN : // Bas
+      case K2K(SDLK_DOWN) : // Bas
         if (Help_position<nb_lines-16)
           Help_position++;
         Scroll_help(scroller);
         Key=0;
         break;
-      case SDLK_PAGEUP : // PageUp
+      case K2K(SDLK_PAGEUP) : // PageUp
         if (Help_position>15)
           Help_position-=15;
         else
@@ -634,7 +574,7 @@ void Window_help(int section, const char *sub_section)
         Scroll_help(scroller);
         Key=0;
         break;
-      case SDLK_PAGEDOWN : // PageDown
+      case K2K(SDLK_PAGEDOWN) : // PageDown
         if (nb_lines>16)
         {
           if (Help_position<nb_lines-16-15)
@@ -656,12 +596,12 @@ void Window_help(int section, const char *sub_section)
           Key=0;
         }
         break;
-      case SDLK_HOME : // Home
+      case K2K(SDLK_HOME) : // Home
         Help_position=0;
         Scroll_help(scroller);
         Key=0;
         break;
-      case SDLK_END : // End
+      case K2K(SDLK_END) : // End
       if (nb_lines>16)
       {
         Help_position=nb_lines-16;
@@ -673,7 +613,7 @@ void Window_help(int section, const char *sub_section)
     if (Is_shortcut(Key,0x100+BUTTON_HELP))
       clicked_button=1;
   }
-  while ((clicked_button!=1) && (Key!=SDLK_RETURN));
+  while ((clicked_button!=1) && (Key!=K2K(SDLK_RETURN)));
 
   Key=0;
   Close_window();
@@ -697,14 +637,12 @@ void Button_Stats(void)
   unsigned long STRAM=0,TTRAM=0;
   char helpBuf[64]={0};
 #endif
-  
+
   Open_window(310,174,"Statistics");
 
   // Dessin de la fenetre ou va s'afficher le texte
   Window_display_frame_in(8,17,294,132);
-  Block(Window_pos_X+(Menu_factor_X*9),
-        Window_pos_Y+(Menu_factor_Y*18),
-        Menu_factor_X*292,Menu_factor_Y*130,MC_Black);
+  Window_rectangle(9,18,292,130,MC_Black);
 
   Window_set_normal_button(120,153,70,14,"OK",0,1,KEY_ESC); // 1
 
@@ -721,7 +659,7 @@ void Button_Stats(void)
   y+=16;
   Print_in_window(10,y,"Free memory: ",STATS_TITLE_COLOR,MC_Black);
   y+=8;
-  
+
 #if defined (__MINT__)
   // Display free TT/ST RAM
   freeRam=0;
@@ -729,7 +667,7 @@ void Button_Stats(void)
   Atari_Memory_free(&STRAM,&TTRAM);
   freeRam=STRAM+TTRAM;
   buffer[0]='\0';
-  
+
   if(STRAM > (100*1024*1024))
         sprintf(helpBuf,"ST:%u Mb ",(unsigned int)(STRAM/(1024*1024)));
   else if(freeRam > 100*1024)
@@ -738,7 +676,7 @@ void Button_Stats(void)
         sprintf(helpBuf,"ST:%u b ",(unsigned int)STRAM);
 
   strncat(buffer,helpBuf,sizeof(char)*37);
-  
+
   if(TTRAM > (100ULL*1024*1024*1024))
         sprintf(helpBuf,"TT:%u Gb",(unsigned int)(TTRAM/(1024*1024*1024)));
   else if(TTRAM > (100*1024*1024))
@@ -758,15 +696,15 @@ void Button_Stats(void)
         sprintf(helpBuf,"(%u Kb)",(unsigned int)(freeRam/1024));
   else
         sprintf(helpBuf,"(%u b)",(unsigned int)freeRam);
-   
+
    strncat(buffer,helpBuf,sizeof(char)*37);
- 
+
    Print_in_window(18,y,buffer,STATS_DATA_COLOR,MC_Black);
 
 #else
   // Display free RAM (generic)
   freeRam = Memory_free();
-  
+
   if(freeRam > (100ULL*1024*1024*1024))
         sprintf(buffer,"%u Gigabytes",(unsigned int)(freeRam/(1024*1024*1024)));
   else if(freeRam > (100*1024*1024))
@@ -775,22 +713,22 @@ void Button_Stats(void)
         sprintf(buffer,"%u Kilobytes",(unsigned int)(freeRam/1024));
   else
         sprintf(buffer,"%u bytes",(unsigned int)freeRam);
-  
+
   Print_in_window(114,y,buffer,STATS_DATA_COLOR,MC_Black);
 
   #endif
-  
+
   y+=8;
   // Used memory
   Print_in_window(10,y,"Used memory pages: ",STATS_TITLE_COLOR,MC_Black);
   if(Stats_pages_memory > (100LL*1024*1024*1024))
-        sprintf(buffer,"%ld (%lld Gb)",Stats_pages_number, Stats_pages_memory/(1024*1024*1024));
+        sprintf(buffer,"%ld (%ld Gb)",Stats_pages_number, (long)(Stats_pages_memory/(1024*1024*1024)));
   else if(Stats_pages_memory > (100*1024*1024))
-        sprintf(buffer,"%ld (%lld Mb)",Stats_pages_number, Stats_pages_memory/(1024*1024));
+        sprintf(buffer,"%ld (%ld Mb)",Stats_pages_number, (long)(Stats_pages_memory/(1024*1024)));
   else
-        sprintf(buffer,"%ld (%lld Kb)",Stats_pages_number, Stats_pages_memory/1024);
+        sprintf(buffer,"%ld (%ld Kb)",Stats_pages_number, (long)(Stats_pages_memory/1024));
   Print_in_window(162,y,buffer,STATS_DATA_COLOR,MC_Black);
-  
+
   y+=8;
 #if defined(__WIN32__)
     {
@@ -842,7 +780,7 @@ void Button_Stats(void)
         sprintf(buffer,"%u Megabytes",(unsigned int)(mem_size/(1024*1024)));
     else if(mem_size > (100*1024))
         sprintf(buffer,"%u Kilobytes",(unsigned int)(mem_size/1024));
-    else 
+    else
         sprintf(buffer,"%u bytes",(unsigned int)mem_size);
 #if defined(__AROS__)
     Print_in_window(192,y,buffer,STATS_DATA_COLOR,MC_Black);
@@ -855,31 +793,31 @@ void Button_Stats(void)
 	#endif
 	#undef NODISKSPACESUPPORT
   }
-  
+
   y+=16;
   // Affichage des informations sur l'image
   Print_in_window(10,y,"Picture info.:",STATS_TITLE_COLOR,MC_Black);
   y+=8;
-  
+
   // Affichage des dimensions de l'image
   Print_in_window(18,y,"Dimensions :",STATS_TITLE_COLOR,MC_Black);
   sprintf(buffer,"%dx%d",Main_image_width,Main_image_height);
   Print_in_window(122,y,buffer,STATS_DATA_COLOR,MC_Black);
   y+=8;
-  
+
   // Affichage du nombre de couleur utilisé
   Print_in_window(18,y,"Colors used:",STATS_TITLE_COLOR,MC_Black);
   memset(color_usage,0,sizeof(color_usage));
   sprintf(buffer,"%d",Count_used_colors(color_usage));
   Print_in_window(122,y,buffer,STATS_DATA_COLOR,MC_Black);
   y+=16;
-  
+
   // Affichage des dimensions de l'écran
   Print_in_window(10,y,"Resolution:",STATS_TITLE_COLOR,MC_Black);
   sprintf(buffer,"%dx%d",Screen_width,Screen_height);
   Print_in_window(106,y,buffer,STATS_DATA_COLOR,MC_Black);
-  
-  Update_rect(Window_pos_X,Window_pos_Y,Menu_factor_X*310,Menu_factor_Y*174);
+
+  Update_window_area(0,0,310,174);
 
   Display_cursor();
 
@@ -889,9 +827,9 @@ void Button_Stats(void)
     if (Is_shortcut(Key,0x200+BUTTON_HELP))
       clicked_button=1;
   }
-  while ( (clicked_button!=1) && (Key!=SDLK_RETURN) );
+  while ( (clicked_button!=1) && (Key!=K2K(SDLK_RETURN)) );
 
-  if(Key==SDLK_RETURN)Key=0;
+  if(Key==K2K(SDLK_RETURN))Key=0;
 
   Close_window();
   Unselect_button(BUTTON_HELP);

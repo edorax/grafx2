@@ -20,13 +20,9 @@
     along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 */
 
-#include <SDL.h>
+#include <stdlib.h>
+#include <SDL2/SDL.h>
 #include <SDL_syswm.h>
-
-#ifdef __WIN32__
-  #include <windows.h>
-  #include <ShellApi.h>
-#endif
 
 #include "global.h"
 #include "keyboard.h"
@@ -37,18 +33,9 @@
 #include "buttons.h"
 #include "input.h"
 #include "loadsave.h"
+#include "keyboard.h"
 
-
-#define RSUPER_EMULATES_META_MOD
-// Keyboards with a Super key never seem to have a Meta key at the same time.
-// This setting allows the right 'Super' key (the one with a 'Windows' or
-// 'Amiga' label to be used as a modifier instead of a normal key.
-// This feature is especially useful for AROS where applications should use
-// generic defaults like "Right Amiga+Q = Quit".
-// In case this is annoying for some platforms, disable it.
-
-void Handle_window_resize(SDL_ResizeEvent event);
-void Handle_window_exit(SDL_QuitEvent event);
+int Handle_window(SDL_WindowEvent event);
 int Color_cycling(void);
 
 // public Globals (available as extern)
@@ -59,6 +46,8 @@ int Snap_axis_origin_X;
 int Snap_axis_origin_Y;
 
 char * Drop_file_name = NULL;
+
+Sint32 Id_event_unicode;
 
 // --
 
@@ -131,12 +120,12 @@ byte Pan_shortcut_pressed;
   /// move by itself, controlled by parasits.
   /// YR 04/11/2010: I just observed a -8700 when joystick is idle.
   #define JOYSTICK_THRESHOLD  (10000)
-  
-  /// A button that is marked as "modifier" will 
+
+  /// A button that is marked as "modifier" will
   short Joybutton_shift=-1; ///< Button number that serves as a "shift" modifier; -1 for none
   short Joybutton_control=-1; ///< Button number that serves as a "ctrl" modifier; -1 for none
   short Joybutton_alt=-1; ///< Button number that serves as a "alt" modifier; -1 for none
-  
+
   short Joybutton_left_click=0; ///< Button number that serves as left click; -1 for none
   short Joybutton_right_click=1; ///< Button number that serves as right-click; -1 for none
 
@@ -146,7 +135,7 @@ int Has_shortcut(word function)
 {
   if (function == 0xFFFF)
     return 0;
-    
+
   if (function & 0x100)
   {
     if (Buttons_Pool[function&0xFF].Left_shortcut[0]!=KEY_NONE)
@@ -167,14 +156,14 @@ int Has_shortcut(word function)
     return 1;
   if(Config_Key[function][1]!=KEY_NONE)
     return 1;
-  return 0; 
+  return 0;
 }
 
 int Is_shortcut(word key, word function)
 {
   if (key == 0 || function == 0xFFFF)
     return 0;
-    
+
   if (function & 0x100)
   {
     if (Buttons_Pool[function&0xFF].Left_shortcut[0]==key)
@@ -195,7 +184,7 @@ int Is_shortcut(word key, word function)
     return 1;
   if(key == Config_Key[function][1])
     return 1;
-  return 0; 
+  return 0;
 }
 
 // Called each time there is a cursor move, either triggered by mouse or keyboard shortcuts
@@ -204,8 +193,8 @@ int Move_cursor_with_constraints()
   int feedback=0;
   int  mouse_blocked=0; ///< Boolean, Set to true if mouse movement was clipped.
 
-  
-  // Clip mouse to the editing area. There can be a border when using big 
+
+  // Clip mouse to the editing area. There can be a border when using big
   // pixels, if the SDL screen dimensions are not factors of the pixel size.
   if (Input_new_mouse_Y>=Screen_height)
   {
@@ -221,7 +210,7 @@ int Move_cursor_with_constraints()
   //menu lorsqu'on est en train de travailler dans l'image
   if (Operation_stack_size != 0)
   {
-        
+
 
         //Si le curseur ne se trouve plus dans l'image
         if(Menu_Y<=Input_new_mouse_Y)
@@ -259,7 +248,7 @@ int Move_cursor_with_constraints()
     if ((Input_new_mouse_K != Mouse_K))
     {
       feedback=1;
-      
+
       if (Input_new_mouse_K == 0)
       {
         Input_sticky_control = 0;
@@ -279,7 +268,7 @@ int Move_cursor_with_constraints()
       Mouse_Y=Input_new_mouse_Y;
     }
     Mouse_K=Input_new_mouse_K;
-    
+
     if (Mouse_moved > Config.Mouse_merge_movement
       && !Operation[Current_operation][Mouse_K_unique]
           [Operation_stack_size].Fast_mouse)
@@ -292,25 +281,38 @@ int Move_cursor_with_constraints()
 
 // WM events management
 
-void Handle_window_resize(SDL_ResizeEvent event)
+int Handle_window(SDL_WindowEvent event)
 {
-    Resize_width = event.w;
-    Resize_height = event.h;
-}
-
-void Handle_window_exit(SDL_QuitEvent event)
-{
-    (void)event, // unused
-    
-    Quit_is_required = 1;
+    if(event.event == SDL_WINDOWEVENT_RESIZED)
+    {
+        if (!Video_mode[Current_resolution].Fullscreen)
+        {
+          //Resize_width = event.data1;
+          //Resize_height = event.data2;
+          Resize_window(event.data1, event.data2);
+        }
+        return 1;
+    }
+    else if(event.event == SDL_WINDOWEVENT_CLOSE)
+    {
+        Quit_is_required = 1;
+        return 1;
+    }
+    else if (event.event == SDL_WINDOWEVENT_RESTORED)
+    {
+        // Force screen refresh
+        Update_rect(0,0,0,0);
+        return 1;
+    }
+    return 0;
 }
 
 // Mouse events management
 
 int Handle_mouse_move(SDL_MouseMotionEvent event)
 {
-    Input_new_mouse_X = event.x/Pixel_width;
-    Input_new_mouse_Y = event.y/Pixel_height;
+    Input_new_mouse_X = event.x;
+    Input_new_mouse_Y = event.y;
 
     return Move_cursor_with_constraints();
 }
@@ -325,7 +327,6 @@ int Handle_mouse_click(SDL_MouseButtonEvent event)
             else
               Input_new_mouse_K |= 1;
             break;
-            break;
 
         case SDL_BUTTON_RIGHT:
             if (Button_inverter)
@@ -333,20 +334,18 @@ int Handle_mouse_click(SDL_MouseButtonEvent event)
             else
               Input_new_mouse_K |= 2;
             break;
-            break;
 
         case SDL_BUTTON_MIDDLE:
             Key = KEY_MOUSEMIDDLE|Key_modifiers(SDL_GetModState());
             // TODO: repeat system maybe?
             return 0;
-
-        case SDL_BUTTON_WHEELUP:
-            Key = KEY_MOUSEWHEELUP|Key_modifiers(SDL_GetModState());
+        case SDL_BUTTON_X1:
+            Key = KEY_MOUSEX1|Key_modifiers(SDL_GetModState());
+            return 0;
+        case SDL_BUTTON_X2:
+            Key = KEY_MOUSEX2|Key_modifiers(SDL_GetModState());
             return 0;
 
-        case SDL_BUTTON_WHEELDOWN:
-            Key = KEY_MOUSEWHEELDOWN|Key_modifiers(SDL_GetModState());
-            return 0;
         default:
         return 0;
     }
@@ -371,8 +370,33 @@ int Handle_mouse_release(SDL_MouseButtonEvent event)
               Input_new_mouse_K &= ~2;
             break;
     }
-    
+
     return Move_cursor_with_constraints();
+}
+
+int Handle_mouse_wheel(SDL_MouseWheelEvent event)
+{
+    if (event.y>0)
+    {
+        Key = KEY_MOUSEWHEELUP|Key_modifiers(SDL_GetModState());
+        return 0;
+    }
+    else if (event.y<0)
+    {
+        Key = KEY_MOUSEWHEELDOWN|Key_modifiers(SDL_GetModState());
+        return 0;
+    }
+    else if (event.x<0)
+    {
+        Key = KEY_MOUSEWHEELLEFT|Key_modifiers(SDL_GetModState());
+        return 0;
+    }
+    else if (event.x>0)
+    {
+        Key = KEY_MOUSEWHEELRIGHT|Key_modifiers(SDL_GetModState());
+        return 0;
+    }
+    return 0;
 }
 
 // Keyboard management
@@ -381,9 +405,9 @@ int Handle_key_press(SDL_KeyboardEvent event)
 {
     //Appui sur une touche du clavier
     int modifier;
-  
+
     Key = Keysym_to_keycode(event.keysym);
-    Key_ANSI = Keysym_to_ANSI(event.keysym);
+    //Key_ANSI = Keysym_to_ANSI(event.keysym);
     switch(event.keysym.sym)
     {
       case SDLK_RSHIFT:
@@ -402,8 +426,8 @@ int Handle_key_press(SDL_KeyboardEvent event)
         modifier=MOD_ALT;
         break;
 
-      case SDLK_RMETA:
-      case SDLK_LMETA:
+      case SDLK_RGUI:
+      case SDLK_LGUI:
         modifier=MOD_META;
         break;
 
@@ -419,13 +443,6 @@ int Handle_key_press(SDL_KeyboardEvent event)
         return Move_cursor_with_constraints();
       }
     }
-    #ifdef RSUPER_EMULATES_META_MOD
-    if (Key==SDLK_RSUPER)
-    {
-      SDL_SetModState(SDL_GetModState() | KMOD_META);
-      Key=0;
-    }
-    #endif
 
     if(Is_shortcut(Key,SPECIAL_MOUSE_UP))
     {
@@ -481,7 +498,7 @@ int Release_control(int key_code, int modifier)
     {
       Button_inverter=0;
       if (Input_new_mouse_K)
-      {      
+      {
         Input_new_mouse_K ^= 3; // Flip bits 0 and 1
         return Move_cursor_with_constraints();
       }
@@ -533,7 +550,7 @@ int Release_control(int key_code, int modifier)
       Pan_shortcut_pressed=0;
       need_feedback = 1;
     }
-    
+
     // Other keys don't need to be released : they are handled as "events" and procesed only once.
     // These clicks are apart because they need to be continuous (ie move while key pressed)
     // We are relying on "hardware" keyrepeat to achieve that.
@@ -545,7 +562,7 @@ int Handle_key_release(SDL_KeyboardEvent event)
 {
     int modifier;
     int released_key = Keysym_to_keycode(event.keysym) & 0x0FFF;
-  
+
     switch(event.keysym.sym)
     {
       case SDLK_RSHIFT:
@@ -564,15 +581,8 @@ int Handle_key_release(SDL_KeyboardEvent event)
         modifier=MOD_ALT;
         break;
 
-      #ifdef RSUPER_EMULATES_META_MOD
-      case SDLK_RSUPER:
-        SDL_SetModState(SDL_GetModState() & ~KMOD_META);
-        modifier=MOD_META;
-        break;
-      #endif
-      
-      case SDLK_RMETA:
-      case SDLK_LMETA:
+      case SDLK_RGUI:
+      case SDLK_LGUI:
         modifier=MOD_META;
         break;
 
@@ -608,7 +618,7 @@ int Handle_joystick_press(SDL_JoyButtonEvent event)
     }
     if (event.button == Joybutton_alt)
     {
-      SDL_SetModState(SDL_GetModState() | (KMOD_ALT|KMOD_META));
+      SDL_SetModState(SDL_GetModState() | (KMOD_ALT|KMOD_GUI));
       if (Config.Swap_buttons == MOD_ALT && Button_inverter==0)
       {
         Button_inverter=1;
@@ -672,14 +682,14 @@ int Handle_joystick_press(SDL_JoyButtonEvent event)
         Directional_up_left=1;
         break;
       #endif
-      
+
       default:
         break;
     }
-      
+
     Key = (KEY_JOYBUTTON+event.button)|Key_modifiers(SDL_GetModState());
     // TODO: systeme de répétition
-    
+
     return Move_cursor_with_constraints();
 }
 
@@ -697,7 +707,7 @@ int Handle_joystick_release(SDL_JoyButtonEvent event)
     }
     if (event.button == Joybutton_alt)
     {
-      SDL_SetModState(SDL_GetModState() & ~(KMOD_ALT|KMOD_META));
+      SDL_SetModState(SDL_GetModState() & ~(KMOD_ALT|KMOD_GUI));
       return Release_control(0,MOD_ALT);
     }
     if (event.button == Joybutton_left_click)
@@ -710,7 +720,7 @@ int Handle_joystick_release(SDL_JoyButtonEvent event)
       Input_new_mouse_K &= ~2;
       return Move_cursor_with_constraints();
     }
-  
+
     switch(event.button)
     {
       #ifdef JOY_BUTTON_UP
@@ -753,7 +763,7 @@ int Handle_joystick_release(SDL_JoyButtonEvent event)
         Directional_up_left=1;
         break;
       #endif
-      
+
       default:
         break;
     }
@@ -789,11 +799,11 @@ int Cursor_displace(short delta_x, short delta_y)
 {
   short x=Input_new_mouse_X;
   short y=Input_new_mouse_Y;
-  
+
   if(Main_magnifier_mode && Input_new_mouse_Y < Menu_Y && Input_new_mouse_X > Main_separator_position)
   {
     // Cursor in zoomed area
-    
+
     if (delta_x<0)
       Input_new_mouse_X = Max(Main_separator_position, x-Main_magnifier_factor);
     else if (delta_x>0)
@@ -827,7 +837,7 @@ int Directional_acceleration(int msec)
   // At beginning there is 1 pixel move, then nothing for N milliseconds
   if (msec<initial_delay)
     return 1;
-    
+
   // After that, position over time is generally y = ax²+bx+c
   // a = 1/accel_factor
   // b = 1/linear_factor
@@ -841,12 +851,12 @@ int Get_input(int sleep_time)
 {
     SDL_Event event;
     int user_feedback_required = 0; // Flag qui indique si on doit arrêter de traiter les évènements ou si on peut enchainer
-                
+
+    Color_cycling();
     // Commit any pending screen update.
-    // This is done in this function because it's called after reading 
+    // This is done in this function because it's called after reading
     // some user input.
     Flush_update();
-    Color_cycling();
     Key_ANSI = 0;
     Key = 0;
     Mouse_moved=0;
@@ -866,18 +876,12 @@ int Get_input(int sleep_time)
     // Process as much events as possible without redrawing the screen.
     // This mostly allows us to merge mouse events for people with an high
     // resolution mouse
-    while(!user_feedback_required && SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_ALLEVENTS)==1)
+    while(!user_feedback_required && SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)==1)
     {
       switch(event.type)
       {
-          case SDL_VIDEORESIZE:
-              Handle_window_resize(event.resize);
-              user_feedback_required = 1;
-              break;
-
-          case SDL_QUIT:
-              Handle_window_exit(event.quit);
-              user_feedback_required = 1;
+          case SDL_WINDOWEVENT:
+              user_feedback_required = Handle_window(event.window);
               break;
 
           case SDL_MOUSEMOTION:
@@ -891,6 +895,11 @@ int Get_input(int sleep_time)
 
           case SDL_MOUSEBUTTONUP:
               Handle_mouse_release(event.button);
+              user_feedback_required = 1;
+              break;
+
+          case SDL_MOUSEWHEEL:
+              Handle_mouse_wheel(event.wheel);
               user_feedback_required = 1;
               break;
 
@@ -922,51 +931,45 @@ int Get_input(int sleep_time)
 
           #endif
           // End of Joystick handling
-          
-          case SDL_SYSWMEVENT:
-#ifdef __WIN32__
-              if(event.syswm.msg->msg  == WM_DROPFILES)
-              {
-                int file_count;
-                HDROP hdrop = (HDROP)(event.syswm.msg->wParam);
-                if((file_count = DragQueryFile(hdrop,(UINT)-1,(LPTSTR) NULL ,(UINT) 0)) > 0)
-                {
-                  long len;
-                  // Query filename length
-                  len = DragQueryFile(hdrop,0 ,NULL ,0);
-                  if (len)
-                  {
-                    Drop_file_name=calloc(len+1,1);
-                    if (Drop_file_name)
-                    {
-                      if (DragQueryFile(hdrop,0 ,(LPTSTR) Drop_file_name ,(UINT) MAX_PATH))
-                      {
-                        // Success
-                      }
-                      else
-                      {
-                        free(Drop_file_name);
-                        // Don't report name copy error
-                      }
-                    }
-                    else
-                    {
-                      // Don't report alloc error (for a file name? :/ )
-                    }
-                  }
-                  else
-                  {
-                    // Don't report weird Windows error
-                  }
-                }
-                else
-                {
-                  // Drop of zero files. Thanks for the information, Bill.
-                }
-              }
-#endif
+
+          case SDL_DROPFILE:
+              free(Drop_file_name);
+              Drop_file_name=calloc(strlen(event.drop.file)+1,1);
+              strcpy(Drop_file_name, event.drop.file);
+              SDL_free(event.drop.file);
+              user_feedback_required = 1;
               break;
-          
+          case SDL_TEXTINPUT:
+            {
+              const char *text = event.text.text;
+              // DEBUG
+              printf("%s\n", text);
+
+              while (text && text[0])
+              {
+                SDL_Event event;
+                word character = 0;
+                text = Parse_utf8_string(text, &character);
+
+                event.type = SDL_USEREVENT;
+                event.user.code = Id_event_unicode;
+                event.user.windowID = 0;
+                event.user.data1 = &character;
+                event.user.data2 = NULL;
+
+                SDL_PushEvent(&event);
+              }
+            }
+              break;
+          case SDL_USEREVENT:
+              // This event indicates that a single unicode character was entered
+              if (event.user.code == Id_event_unicode)
+              {
+                Key_ANSI = *(word *)(event.user.data1);
+                //free(event.user.data1);
+                user_feedback_required = 1;
+              }
+              break;
           default:
               //DEBUG("Unhandled SDL event number : ",event.type);
               break;
@@ -985,9 +988,9 @@ int Get_input(int sleep_time)
     {
       long time_now;
       int step=0;
-      
+
       time_now=SDL_GetTicks();
-      
+
       if (Directional_first_move==0)
       {
         Directional_first_move=time_now;
@@ -1001,11 +1004,11 @@ int Get_input(int sleep_time)
         step =
           Directional_acceleration(time_now - Directional_first_move) -
           Directional_acceleration(Directional_last_move - Directional_first_move);
-        
+
         // Clip speed at 3 pixel per visible frame.
         if (step > 3)
           step=3;
-        
+
       }
       Directional_last_move = time_now;
       if (step)
@@ -1021,7 +1024,7 @@ int Get_input(int sleep_time)
            !(Directional_down_left||Directional_left||Directional_emulated_left||Directional_up_left))
         {
           Cursor_displace(step,0);
-        }    
+        }
         // Directional controller DOWN
         if ((Directional_down_right||Directional_down||Directional_emulated_down||Directional_down_left) &&
            !(Directional_up_left||Directional_up||Directional_emulated_up||Directional_up_right))
@@ -1046,7 +1049,7 @@ int Get_input(int sleep_time)
     }
     if (user_feedback_required)
       return 1;
-    
+
     // Nothing significant happened
     if (sleep_time)
       SDL_Delay(sleep_time);
@@ -1059,21 +1062,16 @@ void Adjust_mouse_sensitivity(word fullscreen)
   (void)fullscreen;
 }
 
-void Set_mouse_position(void)
-{
-    SDL_WarpMouse(Mouse_X*Pixel_width, Mouse_Y*Pixel_height);
-}
-
 int Color_cycling(void)
 {
   static byte offset[16];
   int i, color;
-  static SDL_Color PaletteSDL[256];
+  T_Palette palette;
   int changed; // boolean : true if the palette needs a change in this tick.
-  
+
   long now;
   static long start=0;
-  
+
   if (start==0)
   {
     // First run
@@ -1082,25 +1080,25 @@ int Color_cycling(void)
   }
   if (!Allow_colorcycling || !Cycling_mode)
     return 1;
-    
+
 
   now = SDL_GetTicks();
   changed=0;
-  
+
   // Check all cycles for a change at this tick
   for (i=0; i<16; i++)
   {
     int len;
-    
+
     len=Main_backups->Pages->Gradients->Range[i].End-Main_backups->Pages->Gradients->Range[i].Start+1;
     if (len>1 && Main_backups->Pages->Gradients->Range[i].Speed)
     {
       int new_offset;
-      
+
       new_offset=(now-start)/(int)(1000.0/(Main_backups->Pages->Gradients->Range[i].Speed*0.2856)) % len;
       if (!Main_backups->Pages->Gradients->Range[i].Inverse)
         new_offset=len - new_offset;
-      
+
       if (new_offset!=offset[i])
         changed=1;
       offset[i]=new_offset;
@@ -1111,26 +1109,27 @@ int Color_cycling(void)
     // Initialize the palette
     for(color=0;color<256;color++)
     {
-      PaletteSDL[color].r=Main_palette[color].R;
-      PaletteSDL[color].g=Main_palette[color].G;
-      PaletteSDL[color].b=Main_palette[color].B;
+      palette[color].R=Main_palette[color].R;
+      palette[color].G=Main_palette[color].G;
+      palette[color].B=Main_palette[color].B;
     }
     for (i=0; i<16; i++)
     {
       int len;
-    
+
       len=Main_backups->Pages->Gradients->Range[i].End-Main_backups->Pages->Gradients->Range[i].Start+1;
       if (len>1 && Main_backups->Pages->Gradients->Range[i].Speed)
       {
         for(color=Main_backups->Pages->Gradients->Range[i].Start;color<=Main_backups->Pages->Gradients->Range[i].End;color++)
         {
-          PaletteSDL[color].r=Main_palette[Main_backups->Pages->Gradients->Range[i].Start+((color-Main_backups->Pages->Gradients->Range[i].Start+offset[i])%len)].R;
-          PaletteSDL[color].g=Main_palette[Main_backups->Pages->Gradients->Range[i].Start+((color-Main_backups->Pages->Gradients->Range[i].Start+offset[i])%len)].G;
-          PaletteSDL[color].b=Main_palette[Main_backups->Pages->Gradients->Range[i].Start+((color-Main_backups->Pages->Gradients->Range[i].Start+offset[i])%len)].B;
+          palette[color].R=Main_palette[Main_backups->Pages->Gradients->Range[i].Start+((color-Main_backups->Pages->Gradients->Range[i].Start+offset[i])%len)].R;
+          palette[color].G=Main_palette[Main_backups->Pages->Gradients->Range[i].Start+((color-Main_backups->Pages->Gradients->Range[i].Start+offset[i])%len)].G;
+          palette[color].B=Main_palette[Main_backups->Pages->Gradients->Range[i].Start+((color-Main_backups->Pages->Gradients->Range[i].Start+offset[i])%len)].B;
         }
       }
     }
-    SDL_SetPalette(Screen_SDL, SDL_PHYSPAL | SDL_LOGPAL, PaletteSDL,0,256);
+    Set_palette(palette);
+    Update_rect(0,0,0,0);
   }
   return 0;
 }

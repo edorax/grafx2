@@ -21,7 +21,7 @@
     You should have received a copy of the GNU General Public License
     along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 */
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
@@ -66,9 +66,9 @@ word Count_used_colors(dword* usage)
     for (i = 0; i < nb_pixels; i++)
     {
       color=*current_pixel; // get color in picture for this pixel
-  
+
       usage[color]++; // add it to the counter
-  
+
       // go to next pixel
       current_pixel++;
     }
@@ -83,40 +83,6 @@ word Count_used_colors(dword* usage)
 
   return nb_colors;
 }
-
-/// Same as ::Count_used_colors, but use a block screen memory instead of
-/// picture data. Used to count colors in the loading screen.
-word Count_used_colors_screen_area(dword* usage, word start_x, word start_y,
-  word width, word height)
-{
-  Uint8 color;
-  word x, y;
-  word nb_colors = 0;
-  int i;
-
-  // Init usage table
-  for (i = 0; i < 256; i++) usage[i]=0;
-
-  // For each pixel in screen area
-  for (y = 0; y < height; y++)
-  {
-    for (x = 0; x < width; x++)
-    {
-      // Get color in screen memory
-      color=*(Screen_pixels+((start_x + x)+(start_y + y) * Screen_width
-        * Pixel_height) * Pixel_width);
-      usage[color]++; //Un point de plus pour cette couleur
-    }
-  }
-  //On va maintenant compter dans la table les couleurs utilisées:
-  for (i = 0; i < 256; i++)
-  {
-    if (usage[i]!=0)
-      nb_colors++;
-  }
-  return nb_colors;
-}
-
 
 /// Same as ::Count_used_colors, but for a given rectangle in the picture only.
 /// Used bu the C64 block constraint checker.
@@ -154,15 +120,16 @@ word Count_used_colors_area(dword* usage, word start_x, word start_y,
 
 void Set_palette(T_Palette palette)
 {
-  register int i;
-  SDL_Color PaletteSDL[256];
+  // SDL2 requires an explicit call to SDL_SetPaletteColors(). You can read the SDL_Surface->format->palette[], but writing there isn't taken into account.
+  int i;
+  SDL_Color colors[256];
   for(i=0;i<256;i++)
   {
-    PaletteSDL[i].r=(palette[i].R=Round_palette_component(palette[i].R));
-    PaletteSDL[i].g=(palette[i].G=Round_palette_component(palette[i].G));
-    PaletteSDL[i].b=(palette[i].B=Round_palette_component(palette[i].B));
+    colors[i].r = palette[i].R = Round_palette_component(palette[i].R);
+    colors[i].g = palette[i].G = Round_palette_component(palette[i].G);
+    colors[i].b = palette[i].B = Round_palette_component(palette[i].B);
   }
-  SDL_SetPalette(Screen_SDL, SDL_PHYSPAL | SDL_LOGPAL, PaletteSDL,0,256);
+  SDL_SetPaletteColors(Screen_SDL->format->palette, colors, 0, 256);
 }
 
 void Set_color(byte color, byte red, byte green, byte blue)
@@ -171,7 +138,7 @@ void Set_color(byte color, byte red, byte green, byte blue)
   comp.r=red;
   comp.g=green;
   comp.b=blue;
-  SDL_SetPalette(Screen_SDL, SDL_PHYSPAL | SDL_LOGPAL, &comp, color, 1);
+  SDL_SetPaletteColors(Screen_SDL->format->palette, &comp, color, 1);
 }
 
 void Wait_end_of_click(void)
@@ -307,7 +274,7 @@ void Rotate_90_deg_lowlevel(byte * source, byte * dest, short width, short heigh
     for(x=0;x<width;x++)
     {
       *(dest+height*(width-1-x)+y)=*source;
-      source++;  
+      source++;
     }
   }
 }
@@ -321,7 +288,7 @@ void Rotate_270_deg_lowlevel(byte * source, byte * dest, short width, short heig
     for(x=0;x<width;x++)
     {
       *(dest+(height-1-y)+x*height)=*source;
-      source++;  
+      source++;
     }
   }
 }
@@ -496,8 +463,8 @@ byte Effect_alpha_colorize    (word x,word y,byte color)
   byte blue_under=Main_palette[color_under].B;
   byte green_under=Main_palette[color_under].G;
   byte red_under=Main_palette[color_under].R;
-  int factor=(Main_palette[color].R*76 + 
-    Main_palette[color].G*151 + 
+  int factor=(Main_palette[color].R*76 +
+    Main_palette[color].G*151 +
     Main_palette[color].B*28)/255;
 
   return Best_color(
@@ -698,24 +665,6 @@ void Scroll_picture(byte * main_src, byte * main_dest, short x_offset,short y_of
   }
 
   Update_rect(0,0,0,0);
-}
-
-void Zoom_a_line(byte* original_line, byte* zoomed_line,
-    word factor, word width
-    )
-{
-  byte color;
-  word x;
-
-  // Pour chaque pixel
-  for(x=0;x<width;x++){
-    color = *original_line;
-
-    memset(zoomed_line,color,factor);
-    zoomed_line+=factor;
-
-    original_line++;
-  }
 }
 
 /*############################################################################*/

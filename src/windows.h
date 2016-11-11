@@ -28,18 +28,26 @@
 #define __WINDOWS_H_
 
 #include "struct.h"
+#include <SDL.h>
 
+
+#ifdef MULTI_WINDOW
+#define ToWinX(x) (x)
+#define ToWinY(y) (y)
+#define ToWinL(l) (l)
+#define ToWinH(h) (h)
+#define Update_window_area(x,y,w,h) SDL_UpdateWindowSurface(Window_handle)
+#else
 #define ToWinX(x) (((x)*Menu_factor_X)+Window_pos_X)
 #define ToWinY(y) (((y)*Menu_factor_Y)+Window_pos_Y)
 #define ToWinL(l) ((l)*Menu_factor_X)
 #define ToWinH(h) ((h)*Menu_factor_Y)
-
-#define Update_window_area(x,y,w,h) Update_rect(Window_pos_X+(x)*Menu_factor_X,Window_pos_Y+(y)*Menu_factor_Y,(w)*Menu_factor_X,(h)*Menu_factor_Y);
+#define Update_window_area(x,y,w,h)
+#endif
 
 void Display_cursor(void);
 void Hide_cursor(void);
 
-void Remap_screen_after_menu_colors_change(void);
 void Compute_optimal_menu_colors(T_Components * palette);
 void Remap_menu_sprites();
 
@@ -50,9 +58,8 @@ void Clip_magnifier_offsets(short *x_offset, short *y_offset);
 void Compute_limits(void);
 void Compute_paintbrush_coordinates(void);
 
-void Pixel_in_menu(word bar, word x, word y, byte color);
-void Pixel_in_menu_and_skin(word bar, word x, word y, byte color);
-void Pixel_in_window(word x,word y,byte color);
+void Pixel_in_menu(word bar, word x, word y, T_Components color);
+void Pixel_in_window(word x,word y,T_Components color);
 void Set_fore_color(byte color);
 void Set_back_color(byte color);
 void Frame_menu_color(byte id);
@@ -65,14 +72,12 @@ int Pick_color_in_palette(void);
 word Palette_cells_X(void);
 word Palette_cells_Y(void);
 
-void Print_general(short x,short y,const char * str,byte text_color,byte background_color);
-void Print_in_window(short x,short y,const char * str,byte text_color,byte background_color);
-void Print_in_window_limited(short x,short y,const char * str,byte size,byte text_color,byte background_color);
-void Print_char_in_window(short x_pos,short y_pos,const unsigned char c,byte text_color,byte background_color);
+void Print_in_window(short x,short y,const char * str,T_Components text_color,T_Components background_color);
+void Print_in_window_limited(short x,short y,const char * str,byte size,T_Components text_color,T_Components background_color);
 void Print_in_menu(const char * str, short position);
 void Print_coordinates(void);
 void Print_filename(void);
-void Print_counter(short x,short y,const char * str,byte text_color,byte background_color);
+void Print_counter(short x,short y,const char * str,T_Components text_color,T_Components background_color);
 
 byte Confirmation_box(char * message);
 void Warning_message(char * message);
@@ -81,10 +86,11 @@ int Requester_window(char* message, int initial_value);
 
 void Display_image_limits(void);
 void Display_all_screen(void);
-void Window_rectangle(word x_pos,word y_pos,word width,word height,byte color);
+void Window_rectangle(word x_pos,word y_pos,word width,word height,T_Components color);
+void Window_rectangle_alpha(word x_pos,word y_pos,word width,word height,T_Components color, byte alpha);
 void Window_display_frame_generic(word x_pos,word y_pos,word width,word height,
-                                    byte color_tl,byte color_br,byte color_s,byte color_tlc,byte color_brc);
-void Window_display_frame_mono(word x_pos,word y_pos,word width,word height,byte color);
+                                    T_Components color_tl,T_Components color_br,T_Components color_s,T_Components color_tlc,T_Components color_brc);
+void Window_display_frame_mono(word x_pos,word y_pos,word width,word height,T_Components color);
 void Window_display_frame_in(word x_pos,word y_pos,word width,word height);
 void Window_display_frame_out(word x_pos,word y_pos,word width,word height);
 void Window_display_frame(word x_pos,word y_pos,word width,word height);
@@ -93,9 +99,8 @@ void Display_sprite_in_menu(int btn_number,char sprite_number);
 void Display_paintbrush_in_menu(void);
 void Display_paintbrush_in_window(word x,word y,int number);
 
-void Draw_thingumajig(word x,word y, byte color, short direction);
+void Draw_thingumajig(word x,word y, T_Components color, short direction);
 void Display_grad_block_in_window(word x_pos,word y_pos,word block_start,word block_end);
-void Window_display_icon_sprite(word x_pos,word y_pos,byte type);
 
 byte Best_color(byte red,byte green,byte blue);
 byte Best_color_nonexcluded(byte red,byte green,byte blue);
@@ -103,9 +108,6 @@ byte Best_color_range(byte red,byte green,byte blue,byte max);
 byte Best_color_perceptual(byte r,byte g,byte b);
 byte Best_color_perceptual_except(byte r,byte g,byte b, byte except);
 byte Best_color_perceptual_weighted(byte r,byte g,byte b, float weight);
-
-void Horizontal_XOR_line_zoom(short x_pos, short y_pos, short width);
-void Vertical_XOR_line_zoom(short x_pos, short y_pos, short height);
 
 void Change_magnifier_factor(byte factor_index, byte point_at_mouse);
 
@@ -150,7 +152,8 @@ typedef struct {
   word Height;
   byte Visible;
   word Top; ///< Relative to the top line of the menu, hidden bars don't count.
-  byte* Skin[3]; ///< [0] has normal buttons, [1] has selected buttons, [2] is current.
+  byte* Skin;
+  SDL_Texture *Menu_texture;
   word Skin_width;
   byte Last_button_index;
 } T_Menu_Bar;

@@ -2,6 +2,7 @@
 */
 /*  Grafx2 - The Ultimate 256-color bitmap paint program
 
+    Copyright 2014 Sergii Pylypenko
     Copyright 2011 Pawel Góralski
     Copyright 2008 Yves Rizoud
     Copyright 2008 Franck Charlet
@@ -34,7 +35,7 @@
 #if defined(__macosx__)
   #include <SDL_ttf/SDL_ttf.h>
 #else
-  #include <SDL_ttf.h>
+  #include <SDL2/SDL_ttf.h>
 #endif
 
 #if defined(__CAANOO__) || defined(__WIZ__) || defined(__GP2X__)
@@ -414,14 +415,21 @@ byte *Render_text_TTF(const char *str, int font_number, int size, int antialias,
   // Colors: Text will be generated as white on black.
   fg_color.r=fg_color.g=fg_color.b=255;
   bg_color.r=bg_color.g=bg_color.b=0;
-  // The following is alpha, supposedly unused
-  bg_color.unused=fg_color.unused=255;
+  // The following is alpha
+  bg_color.a=fg_color.a=255;
   
   // Text rendering: creates a 8bit surface with its dedicated palette
+  #ifdef __ANDROID__
+  if (antialias)
+    text_surface=TTF_RenderUTF8_Shaded(font, str, fg_color, bg_color );
+  else
+    text_surface=TTF_RenderUTF8_Solid(font, str, fg_color);
+  #else
   if (antialias)
     text_surface=TTF_RenderText_Shaded(font, str, fg_color, bg_color );
   else
     text_surface=TTF_RenderText_Solid(font, str, fg_color);
+  #endif
   if (!text_surface)
   {
     TTF_CloseFont(font);
@@ -552,7 +560,7 @@ byte *Render_text_SFont(const char *str, int font_number, int *width, int *heigh
       rgb.r=((color & 0xE0)>>5)<<5;
       rgb.g=((color & 0x1C)>>2)<<5;
       rgb.b=((color & 0x03)>>0)<<6;
-      SDL_SetColors(reduced_surface, &rgb, color, 1);
+      // Set_surface_palette(reduced_surface, &rgb, color, 1); // TODO! single color
     }
     // Perform reduction
     for (y=0; y<font_surface->h; y++)
@@ -582,7 +590,7 @@ byte *Render_text_SFont(const char *str, int font_number, int *width, int *heigh
   // Allocation d'une surface SDL
   text_surface=SDL_CreateRGBSurface(SDL_SWSURFACE, *width, *height, 8, 0, 0, 0, 0);
   // Copy palette
-  SDL_SetPalette(text_surface, SDL_LOGPAL, font_surface->format->palette->colors, 0, 256);
+  Set_surface_palette(text_surface, font_surface->format->palette->colors);
   // Fill with transparent color
   rectangle.x=0;
   rectangle.y=0;

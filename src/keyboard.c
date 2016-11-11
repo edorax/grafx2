@@ -20,6 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with Grafx2; if not, see <http://www.gnu.org/licenses/>
 */
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include "global.h"
@@ -29,13 +30,13 @@
   // Apple's "command" character is not present in the ANSI table, so we
   // recycled an ANSI value that doesn't have any displayable character
   // associated.
-  #define META_KEY_PREFIX "\201"
+  #define GUI_KEY_PREFIX "\201"
 #elif defined(__amigaos4__) || defined(__AROS__) || defined(__MORPHOS__) || defined(__amigaos__)
   // 'Amiga' key: an outlined uppercase A. Drawn on 2 unused characters.
-  #define META_KEY_PREFIX "\215\216"
+  #define GUI_KEY_PREFIX "\215\216"
 #else
   // All other platforms
-  #define META_KEY_PREFIX "Super+"
+  #define GUI_KEY_PREFIX "Gui+"
 #endif
 
 // Table de correspondance des scancode de clavier IBM PC AT vers
@@ -45,262 +46,262 @@
 // Dans l'ordre des colonnes: Normal, +Shift, +Control, +Alt
 const word Scancode_to_sym[256][4] =
 {
-/* 00  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 01  Esc   */ { SDLK_ESCAPE      ,SDLK_ESCAPE      ,SDLK_ESCAPE      ,SDLK_ESCAPE      },  
-/* 02  1 !   */ { SDLK_1           ,SDLK_1           ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 03  2 @   */ { SDLK_2           ,SDLK_2           ,SDLK_2           ,SDLK_UNKNOWN     },  
-/* 04  3 #   */ { SDLK_3           ,SDLK_3           ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 05  4 $   */ { SDLK_4           ,SDLK_4           ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 06  5 %   */ { SDLK_5           ,SDLK_5           ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 07  6 ^   */ { SDLK_6           ,SDLK_6           ,SDLK_6           ,SDLK_UNKNOWN     },  
-/* 08  7 &   */ { SDLK_7           ,SDLK_7           ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 09  8 *   */ { SDLK_8           ,SDLK_8           ,SDLK_8           ,SDLK_UNKNOWN     },  
-/* 0A  9 (   */ { SDLK_9           ,SDLK_9           ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 0B  0 )   */ { SDLK_0           ,SDLK_0           ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 0C  - _   */ { SDLK_MINUS       ,SDLK_MINUS       ,SDLK_MINUS       ,SDLK_UNKNOWN     },  
-/* 0D  = +   */ { SDLK_EQUALS      ,SDLK_EQUALS      ,SDLK_EQUALS      ,SDLK_UNKNOWN     },  
-/* 0E  BkSpc */ { SDLK_BACKSPACE   ,SDLK_BACKSPACE   ,SDLK_BACKSPACE   ,SDLK_BACKSPACE   },  
-/* 0F  Tab   */ { SDLK_TAB         ,SDLK_TAB         ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 10  Q     */ { SDLK_q           ,SDLK_q           ,SDLK_q           ,SDLK_q           },  
-/* 11  W     */ { SDLK_w           ,SDLK_w           ,SDLK_w           ,SDLK_w           },  
-/* 12  E     */ { SDLK_e           ,SDLK_e           ,SDLK_e           ,SDLK_e           },  
-/* 13  R     */ { SDLK_r           ,SDLK_r           ,SDLK_r           ,SDLK_r           },  
-/* 14  T     */ { SDLK_t           ,SDLK_t           ,SDLK_t           ,SDLK_t           },  
-/* 15  Y     */ { SDLK_y           ,SDLK_y           ,SDLK_y           ,SDLK_y           },  
-/* 16  U     */ { SDLK_u           ,SDLK_u           ,SDLK_u           ,SDLK_u           },  
-/* 17  I     */ { SDLK_i           ,SDLK_i           ,SDLK_i           ,SDLK_i           },  
-/* 18  O     */ { SDLK_o           ,SDLK_o           ,SDLK_o           ,SDLK_o           },  
-/* 19  P     */ { SDLK_p           ,SDLK_p           ,SDLK_p           ,SDLK_p           },  
-/* 1A  [     */ { SDLK_LEFTBRACKET ,SDLK_LEFTBRACKET ,SDLK_LEFTBRACKET ,SDLK_LEFTBRACKET },  
-/* 1B  ]     */ { SDLK_RIGHTBRACKET,SDLK_RIGHTBRACKET,SDLK_RIGHTBRACKET,SDLK_RIGHTBRACKET},  
-/* 1C  Retrn */ { SDLK_RETURN      ,SDLK_RETURN      ,SDLK_RETURN      ,SDLK_RETURN      },  
-/* 1D  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 1E  A     */ { SDLK_a           ,SDLK_a           ,SDLK_a           ,SDLK_a           },  
-/* 1F  S     */ { SDLK_s           ,SDLK_s           ,SDLK_s           ,SDLK_s           },  
-/* 20  D     */ { SDLK_d           ,SDLK_d           ,SDLK_d           ,SDLK_d           },  
-/* 21  F     */ { SDLK_f           ,SDLK_f           ,SDLK_f           ,SDLK_f           },  
-/* 22  G     */ { SDLK_g           ,SDLK_g           ,SDLK_g           ,SDLK_g           },  
-/* 23  H     */ { SDLK_h           ,SDLK_h           ,SDLK_h           ,SDLK_h           },  
-/* 24  J     */ { SDLK_j           ,SDLK_j           ,SDLK_j           ,SDLK_j           },  
-/* 25  K     */ { SDLK_k           ,SDLK_k           ,SDLK_k           ,SDLK_k           },  
-/* 26  L     */ { SDLK_l           ,SDLK_l           ,SDLK_l           ,SDLK_l           },  
-/* 27  ; :   */ { SDLK_SEMICOLON   ,SDLK_SEMICOLON   ,SDLK_SEMICOLON   ,SDLK_SEMICOLON   },  
-/* 28  '     */ { SDLK_QUOTE       ,SDLK_QUOTE       ,SDLK_UNKNOWN     ,SDLK_QUOTE       },  
-/* 29  ` ~   */ { SDLK_BACKQUOTE   ,SDLK_BACKQUOTE   ,SDLK_UNKNOWN     ,SDLK_BACKQUOTE   },  
-/* 2A  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 2B  \\    */ { SDLK_BACKSLASH   ,SDLK_BACKSLASH   ,SDLK_BACKSLASH   ,SDLK_BACKSLASH   },  
-/* 2C  Z     */ { SDLK_z           ,SDLK_z           ,SDLK_z           ,SDLK_z           },  
-/* 2D  X     */ { SDLK_x           ,SDLK_x           ,SDLK_x           ,SDLK_x           },  
-/* 2E  C     */ { SDLK_c           ,SDLK_c           ,SDLK_c           ,SDLK_c           },  
-/* 2F  V     */ { SDLK_v           ,SDLK_v           ,SDLK_v           ,SDLK_v           },  
-/* 30  B     */ { SDLK_b           ,SDLK_b           ,SDLK_b           ,SDLK_b           },  
-/* 31  N     */ { SDLK_n           ,SDLK_n           ,SDLK_n           ,SDLK_n           },  
-/* 32  M     */ { SDLK_m           ,SDLK_m           ,SDLK_m           ,SDLK_m           },  
-/* 33  , <   */ { SDLK_COMMA       ,SDLK_COMMA       ,SDLK_UNKNOWN     ,SDLK_COMMA       },  
-/* 34  . >   */ { SDLK_PERIOD      ,SDLK_PERIOD      ,SDLK_UNKNOWN     ,SDLK_PERIOD      },  
-/* 35  / ?   */ { SDLK_SLASH       ,SDLK_SLASH       ,SDLK_UNKNOWN     ,SDLK_SLASH       },  
-/* 36  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 37  Grey* */ { SDLK_KP_MULTIPLY ,SDLK_KP_MULTIPLY ,SDLK_UNKNOWN     ,SDLK_KP_MULTIPLY },  
-/* 38  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 39  Space */ { SDLK_SPACE       ,SDLK_SPACE       ,SDLK_SPACE       ,SDLK_SPACE       },  
-/* 3A  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 3B  F1    */ { SDLK_F1          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 3C  F2    */ { SDLK_F2          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 3D  F3    */ { SDLK_F3          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 3E  F4    */ { SDLK_F4          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 3F  F5    */ { SDLK_F5          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 40  F6    */ { SDLK_F6          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 41  F7    */ { SDLK_F7          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 42  F8    */ { SDLK_F8          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 43  F9    */ { SDLK_F9          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 44  F10   */ { SDLK_F10         ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 45  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 46  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 47  Home  */ { SDLK_HOME        ,SDLK_HOME        ,SDLK_UNKNOWN     ,SDLK_HOME        },  
-/* 48  Up    */ { SDLK_UP          ,SDLK_UP          ,SDLK_UNKNOWN     ,SDLK_UP          },  
-/* 49  PgUp  */ { SDLK_PAGEUP      ,SDLK_PAGEUP      ,SDLK_UNKNOWN     ,SDLK_PAGEUP      },  
-/* 4A  Grey- */ { SDLK_KP_MINUS    ,SDLK_KP_MINUS    ,SDLK_UNKNOWN     ,SDLK_KP_MINUS    },  
-/* 4B  Left  */ { SDLK_LEFT        ,SDLK_LEFT        ,SDLK_UNKNOWN     ,SDLK_LEFT        },  
-/* 4C  Kpad5 */ { SDLK_KP5         ,SDLK_KP5         ,SDLK_UNKNOWN     ,SDLK_KP5         },  
-/* 4D  Right */ { SDLK_RIGHT       ,SDLK_RIGHT       ,SDLK_UNKNOWN     ,SDLK_RIGHT       },  
-/* 4E  Grey+ */ { SDLK_KP_PLUS     ,SDLK_KP_PLUS     ,SDLK_UNKNOWN     ,SDLK_KP_PLUS     },  
-/* 4F  End   */ { SDLK_END         ,SDLK_END         ,SDLK_UNKNOWN     ,SDLK_END         },  
-/* 50  Down  */ { SDLK_DOWN        ,SDLK_DOWN        ,SDLK_UNKNOWN     ,SDLK_DOWN        },  
-/* 51  PgDn  */ { SDLK_PAGEDOWN    ,SDLK_PAGEDOWN    ,SDLK_UNKNOWN     ,SDLK_PAGEDOWN    },  
-/* 52  Ins   */ { SDLK_INSERT      ,SDLK_INSERT      ,SDLK_UNKNOWN     ,SDLK_INSERT      },  
-/* 53  Del   */ { SDLK_DELETE      ,SDLK_DELETE      ,SDLK_UNKNOWN     ,SDLK_DELETE      },  
-/* 54  ???   */ { SDLK_UNKNOWN     ,SDLK_F1          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 55  ???   */ { SDLK_UNKNOWN     ,SDLK_F2          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 56  Lft|  */ { SDLK_UNKNOWN     ,SDLK_F3          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 57  ???   */ { SDLK_UNKNOWN     ,SDLK_F4          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 58  ???   */ { SDLK_UNKNOWN     ,SDLK_F5          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 59  ???   */ { SDLK_UNKNOWN     ,SDLK_F6          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 5A  ???   */ { SDLK_UNKNOWN     ,SDLK_F7          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 5B  ???   */ { SDLK_UNKNOWN     ,SDLK_F8          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 5C  ???   */ { SDLK_UNKNOWN     ,SDLK_F9          ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 5D  ???   */ { SDLK_UNKNOWN     ,SDLK_F10         ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 5E  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F1          ,SDLK_UNKNOWN     },  
-/* 5F  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F2          ,SDLK_UNKNOWN     },  
-/* 60  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F3          ,SDLK_UNKNOWN     },  
-/* 61  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F4          ,SDLK_UNKNOWN     },  
-/* 62  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F5          ,SDLK_UNKNOWN     },  
-/* 63  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F6          ,SDLK_UNKNOWN     },  
-/* 64  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F7          ,SDLK_UNKNOWN     },  
-/* 65  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F8          ,SDLK_UNKNOWN     },  
-/* 66  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F9          ,SDLK_UNKNOWN     },  
-/* 67  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F10         ,SDLK_UNKNOWN     },  
-/* 68  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F1          },  
-/* 69  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F2          },  
-/* 6A  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F3          },  
-/* 6B  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F4          },  
-/* 6C  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F5          },  
-/* 6D  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F6          },  
-/* 6E  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F7          },  
-/* 6F  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F8          },  
-/* 70  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F9          },  
-/* 71  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F10         },  
-/* 72  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 73  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_LEFT        ,SDLK_UNKNOWN     },  
-/* 74  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_RIGHT       ,SDLK_UNKNOWN     },  
-/* 75  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_END         ,SDLK_UNKNOWN     },  
-/* 76  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_PAGEDOWN    ,SDLK_UNKNOWN     },  
-/* 77  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_HOME        ,SDLK_UNKNOWN     },  
-/* 78  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_1           },  
-/* 79  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_2           },  
-/* 7A  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_3           },  
-/* 7B  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_4           },  
-/* 7C  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_5           },  
-/* 7D  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_6           },  
-/* 7E  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_7           },  
-/* 7F  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_8           },  
-/* 80  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_9           },  
-/* 81  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_0           },  
-/* 82  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_MINUS       },  
-/* 83  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_EQUALS      },  
-/* 84  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_PAGEUP      ,SDLK_UNKNOWN     },  
-/* 85  F11   */ { SDLK_F11         ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 86  F12   */ { SDLK_F12         ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 87  ???   */ { SDLK_UNKNOWN     ,SDLK_F11         ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 88  ???   */ { SDLK_UNKNOWN     ,SDLK_F12         ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 89  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F11         ,SDLK_UNKNOWN     },  
-/* 8A  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F12         ,SDLK_UNKNOWN     },  
-/* 8B  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F11         },  
-/* 8C  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_F12         },  
-/* 8D  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UP          ,SDLK_UNKNOWN     },  
-/* 8E  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_KP_MINUS    ,SDLK_UNKNOWN     },  
-/* 8F  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_KP5         ,SDLK_UNKNOWN     },  
-/* 90  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_KP_PLUS     ,SDLK_UNKNOWN     },  
-/* 91  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_DOWN        ,SDLK_UNKNOWN     },  
-/* 92  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_INSERT      ,SDLK_UNKNOWN     },  
-/* 93  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_DELETE      ,SDLK_UNKNOWN     },  
-/* 94  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_TAB         ,SDLK_UNKNOWN     },  
-/* 95  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_KP_DIVIDE   ,SDLK_UNKNOWN     },  
-/* 96  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_KP_MULTIPLY ,SDLK_UNKNOWN     },  
-/* 97  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_HOME        },  
-/* 98  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UP          },  
-/* 99  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_PAGEUP      },  
-/* 9A  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 9B  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_LEFT        },  
-/* 9C  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 9D  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_RIGHT       },  
-/* 9E  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* 9F  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_END         },  
-/* A0  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_DOWN        },  
-/* A1  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_PAGEUP      },  
-/* A2  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_INSERT      },  
-/* A3  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_DELETE      },  
-/* A4  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_KP_DIVIDE   },  
-/* A5  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_TAB         },  
-/* A6  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_KP_ENTER    },  
-/* A7  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* A8  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* A9  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* AA  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* AB  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* AC  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* AD  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* AE  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* AF  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B0  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B1  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B2  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B3  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B4  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B5  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B6  Win L */ { SDLK_LSUPER      ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B7  Win R */ { SDLK_RSUPER      ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B8  Win M */ { SDLK_MENU        ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* B9  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* BA  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* BB  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* BC  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* BD  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* BE  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* BF  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C0  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C1  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C2  ???   */ { SDLK_UNKNOWN     ,SDLK_LSUPER      ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C3  ???   */ { SDLK_UNKNOWN     ,SDLK_RSUPER      ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C4  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C5  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C6  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C7  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C8  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* C9  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* CA  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* CB  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* CC  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* CD  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* CE  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_LSUPER      ,SDLK_UNKNOWN     },  
-/* CF  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_RSUPER      ,SDLK_UNKNOWN     },  
-/* D0  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_MENU        ,SDLK_UNKNOWN     },  
-/* D1  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D2  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D3  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D4  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D5  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D6  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D7  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D8  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* D9  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* DA  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_LSUPER      },  
-/* DB  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_RSUPER      },  
-/* DC  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_MENU        },  
-/* DD  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* DE  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* DF  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E0  Enter */ { SDLK_KP_ENTER    ,SDLK_KP_ENTER    ,SDLK_KP_ENTER    ,SDLK_UNKNOWN     },  
-/* E1  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E2  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E3  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E4  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E5  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E6  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E7  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E8  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* E9  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* EA  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* EB  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* EC  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* ED  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* EE  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* EF  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F0  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F1  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F2  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F3  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F4  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F5  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F6  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F7  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F8  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* F9  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* FA  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* FB  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* FC  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* FD  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* FE  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
-/* FF  ???   */ { SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     ,SDLK_UNKNOWN     },  
+/* 00  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 01  Esc   */ { K2K(SDLK_ESCAPE)      ,K2K(SDLK_ESCAPE)      ,K2K(SDLK_ESCAPE)      ,K2K(SDLK_ESCAPE)      },  
+/* 02  1 !   */ { K2K(SDLK_1)           ,K2K(SDLK_1)           ,KEY_NONE     ,KEY_NONE     },  
+/* 03  2 @   */ { K2K(SDLK_2)           ,K2K(SDLK_2)           ,K2K(SDLK_2)           ,KEY_NONE     },  
+/* 04  3 #   */ { K2K(SDLK_3)           ,K2K(SDLK_3)           ,KEY_NONE     ,KEY_NONE     },  
+/* 05  4 $   */ { K2K(SDLK_4)           ,K2K(SDLK_4)           ,KEY_NONE     ,KEY_NONE     },  
+/* 06  5 %   */ { K2K(SDLK_5)           ,K2K(SDLK_5)           ,KEY_NONE     ,KEY_NONE     },  
+/* 07  6 ^   */ { K2K(SDLK_6)           ,K2K(SDLK_6)           ,K2K(SDLK_6)           ,KEY_NONE     },  
+/* 08  7 &   */ { K2K(SDLK_7)           ,K2K(SDLK_7)           ,KEY_NONE     ,KEY_NONE     },  
+/* 09  8 *   */ { K2K(SDLK_8)           ,K2K(SDLK_8)           ,K2K(SDLK_8)           ,KEY_NONE     },  
+/* 0A  9 (   */ { K2K(SDLK_9)           ,K2K(SDLK_9)           ,KEY_NONE     ,KEY_NONE     },  
+/* 0B  0 )   */ { K2K(SDLK_0)           ,K2K(SDLK_0)           ,KEY_NONE     ,KEY_NONE     },  
+/* 0C  - _   */ { K2K(SDLK_MINUS)       ,K2K(SDLK_MINUS)       ,K2K(SDLK_MINUS)       ,KEY_NONE     },  
+/* 0D  = +   */ { K2K(SDLK_EQUALS)      ,K2K(SDLK_EQUALS)      ,K2K(SDLK_EQUALS)      ,KEY_NONE     },  
+/* 0E  BkSpc */ { K2K(SDLK_BACKSPACE)   ,K2K(SDLK_BACKSPACE)   ,K2K(SDLK_BACKSPACE)   ,K2K(SDLK_BACKSPACE)   },  
+/* 0F  Tab   */ { K2K(SDLK_TAB)         ,K2K(SDLK_TAB)         ,KEY_NONE     ,KEY_NONE     },  
+/* 10  Q     */ { K2K(SDLK_q)           ,K2K(SDLK_q)           ,K2K(SDLK_q)           ,K2K(SDLK_q)           },  
+/* 11  W     */ { K2K(SDLK_w)           ,K2K(SDLK_w)           ,K2K(SDLK_w)           ,K2K(SDLK_w)           },  
+/* 12  E     */ { K2K(SDLK_e)           ,K2K(SDLK_e)           ,K2K(SDLK_e)           ,K2K(SDLK_e)           },  
+/* 13  R     */ { K2K(SDLK_r)           ,K2K(SDLK_r)           ,K2K(SDLK_r)           ,K2K(SDLK_r)           },  
+/* 14  T     */ { K2K(SDLK_t)           ,K2K(SDLK_t)           ,K2K(SDLK_t)           ,K2K(SDLK_t)           },  
+/* 15  Y     */ { K2K(SDLK_y)           ,K2K(SDLK_y)           ,K2K(SDLK_y)           ,K2K(SDLK_y)           },  
+/* 16  U     */ { K2K(SDLK_u)           ,K2K(SDLK_u)           ,K2K(SDLK_u)           ,K2K(SDLK_u)           },  
+/* 17  I     */ { K2K(SDLK_i)           ,K2K(SDLK_i)           ,K2K(SDLK_i)           ,K2K(SDLK_i)           },  
+/* 18  O     */ { K2K(SDLK_o)           ,K2K(SDLK_o)           ,K2K(SDLK_o)           ,K2K(SDLK_o)           },  
+/* 19  P     */ { K2K(SDLK_p)           ,K2K(SDLK_p)           ,K2K(SDLK_p)           ,K2K(SDLK_p)           },  
+/* 1A  [     */ { K2K(SDLK_LEFTBRACKET) ,K2K(SDLK_LEFTBRACKET) ,K2K(SDLK_LEFTBRACKET) ,K2K(SDLK_LEFTBRACKET) },  
+/* 1B  ]     */ { K2K(SDLK_RIGHTBRACKET),K2K(SDLK_RIGHTBRACKET),K2K(SDLK_RIGHTBRACKET),K2K(SDLK_RIGHTBRACKET)},  
+/* 1C  Retrn */ { K2K(SDLK_RETURN)      ,K2K(SDLK_RETURN)      ,K2K(SDLK_RETURN)      ,K2K(SDLK_RETURN)      },  
+/* 1D  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 1E  A     */ { K2K(SDLK_a)           ,K2K(SDLK_a)           ,K2K(SDLK_a)           ,K2K(SDLK_a)           },  
+/* 1F  S     */ { K2K(SDLK_s)           ,K2K(SDLK_s)           ,K2K(SDLK_s)           ,K2K(SDLK_s)           },  
+/* 20  D     */ { K2K(SDLK_d)           ,K2K(SDLK_d)           ,K2K(SDLK_d)           ,K2K(SDLK_d)           },  
+/* 21  F     */ { K2K(SDLK_f)           ,K2K(SDLK_f)           ,K2K(SDLK_f)           ,K2K(SDLK_f)           },  
+/* 22  G     */ { K2K(SDLK_g)           ,K2K(SDLK_g)           ,K2K(SDLK_g)           ,K2K(SDLK_g)           },  
+/* 23  H     */ { K2K(SDLK_h)           ,K2K(SDLK_h)           ,K2K(SDLK_h)           ,K2K(SDLK_h)           },  
+/* 24  J     */ { K2K(SDLK_j)           ,K2K(SDLK_j)           ,K2K(SDLK_j)           ,K2K(SDLK_j)           },  
+/* 25  K     */ { K2K(SDLK_k)           ,K2K(SDLK_k)           ,K2K(SDLK_k)           ,K2K(SDLK_k)           },  
+/* 26  L     */ { K2K(SDLK_l)           ,K2K(SDLK_l)           ,K2K(SDLK_l)           ,K2K(SDLK_l)           },  
+/* 27  ; :   */ { K2K(SDLK_SEMICOLON)   ,K2K(SDLK_SEMICOLON)   ,K2K(SDLK_SEMICOLON)   ,K2K(SDLK_SEMICOLON)   },  
+/* 28  '     */ { K2K(SDLK_QUOTE)       ,K2K(SDLK_QUOTE)       ,KEY_NONE     ,K2K(SDLK_QUOTE)       },  
+/* 29  ` ~   */ { K2K(SDLK_BACKQUOTE)   ,K2K(SDLK_BACKQUOTE)   ,KEY_NONE     ,K2K(SDLK_BACKQUOTE)   },  
+/* 2A  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 2B  \\    */ { K2K(SDLK_BACKSLASH)   ,K2K(SDLK_BACKSLASH)   ,K2K(SDLK_BACKSLASH)   ,K2K(SDLK_BACKSLASH)   },  
+/* 2C  Z     */ { K2K(SDLK_z)           ,K2K(SDLK_z)           ,K2K(SDLK_z)           ,K2K(SDLK_z)           },  
+/* 2D  X     */ { K2K(SDLK_x)           ,K2K(SDLK_x)           ,K2K(SDLK_x)           ,K2K(SDLK_x)           },  
+/* 2E  C     */ { K2K(SDLK_c)           ,K2K(SDLK_c)           ,K2K(SDLK_c)           ,K2K(SDLK_c)           },  
+/* 2F  V     */ { K2K(SDLK_v)           ,K2K(SDLK_v)           ,K2K(SDLK_v)           ,K2K(SDLK_v)           },  
+/* 30  B     */ { K2K(SDLK_b)           ,K2K(SDLK_b)           ,K2K(SDLK_b)           ,K2K(SDLK_b)           },  
+/* 31  N     */ { K2K(SDLK_n)           ,K2K(SDLK_n)           ,K2K(SDLK_n)           ,K2K(SDLK_n)           },  
+/* 32  M     */ { K2K(SDLK_m)           ,K2K(SDLK_m)           ,K2K(SDLK_m)           ,K2K(SDLK_m)           },  
+/* 33  , <   */ { K2K(SDLK_COMMA)       ,K2K(SDLK_COMMA)       ,KEY_NONE     ,K2K(SDLK_COMMA)       },  
+/* 34  . >   */ { K2K(SDLK_PERIOD)      ,K2K(SDLK_PERIOD)      ,KEY_NONE     ,K2K(SDLK_PERIOD)      },  
+/* 35  / ?   */ { K2K(SDLK_SLASH)       ,K2K(SDLK_SLASH)       ,KEY_NONE     ,K2K(SDLK_SLASH)       },  
+/* 36  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 37  Grey* */ { K2K(SDLK_KP_MULTIPLY) ,K2K(SDLK_KP_MULTIPLY) ,KEY_NONE     ,K2K(SDLK_KP_MULTIPLY) },  
+/* 38  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 39  Space */ { K2K(SDLK_SPACE)       ,K2K(SDLK_SPACE)       ,K2K(SDLK_SPACE)       ,K2K(SDLK_SPACE)       },  
+/* 3A  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 3B  F1    */ { K2K(SDLK_F1)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 3C  F2    */ { K2K(SDLK_F2)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 3D  F3    */ { K2K(SDLK_F3)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 3E  F4    */ { K2K(SDLK_F4)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 3F  F5    */ { K2K(SDLK_F5)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 40  F6    */ { K2K(SDLK_F6)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 41  F7    */ { K2K(SDLK_F7)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 42  F8    */ { K2K(SDLK_F8)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 43  F9    */ { K2K(SDLK_F9)          ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 44  F10   */ { K2K(SDLK_F10)         ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 45  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 46  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 47  Home  */ { K2K(SDLK_HOME)        ,K2K(SDLK_HOME)        ,KEY_NONE     ,K2K(SDLK_HOME)        },  
+/* 48  Up    */ { K2K(SDLK_UP)          ,K2K(SDLK_UP)          ,KEY_NONE     ,K2K(SDLK_UP)          },  
+/* 49  PgUp  */ { K2K(SDLK_PAGEUP)      ,K2K(SDLK_PAGEUP)      ,KEY_NONE     ,K2K(SDLK_PAGEUP)      },  
+/* 4A  Grey- */ { K2K(SDLK_KP_MINUS)    ,K2K(SDLK_KP_MINUS)    ,KEY_NONE     ,K2K(SDLK_KP_MINUS)    },  
+/* 4B  Left  */ { K2K(SDLK_LEFT)        ,K2K(SDLK_LEFT)        ,KEY_NONE     ,K2K(SDLK_LEFT)        },  
+/* 4C  Kpad5 */ { K2K(SDLK_KP_5)         ,K2K(SDLK_KP_5)         ,KEY_NONE     ,K2K(SDLK_KP_5)         },  
+/* 4D  Right */ { K2K(SDLK_RIGHT)       ,K2K(SDLK_RIGHT)       ,KEY_NONE     ,K2K(SDLK_RIGHT)       },  
+/* 4E  Grey+ */ { K2K(SDLK_KP_PLUS)     ,K2K(SDLK_KP_PLUS)     ,KEY_NONE     ,K2K(SDLK_KP_PLUS)     },  
+/* 4F  End   */ { K2K(SDLK_END)         ,K2K(SDLK_END)         ,KEY_NONE     ,K2K(SDLK_END)         },  
+/* 50  Down  */ { K2K(SDLK_DOWN)        ,K2K(SDLK_DOWN)        ,KEY_NONE     ,K2K(SDLK_DOWN)        },  
+/* 51  PgDn  */ { K2K(SDLK_PAGEDOWN)    ,K2K(SDLK_PAGEDOWN)    ,KEY_NONE     ,K2K(SDLK_PAGEDOWN)    },  
+/* 52  Ins   */ { K2K(SDLK_INSERT)      ,K2K(SDLK_INSERT)      ,KEY_NONE     ,K2K(SDLK_INSERT)      },  
+/* 53  Del   */ { K2K(SDLK_DELETE)      ,K2K(SDLK_DELETE)      ,KEY_NONE     ,K2K(SDLK_DELETE)      },  
+/* 54  ???   */ { KEY_NONE     ,K2K(SDLK_F1)          ,KEY_NONE     ,KEY_NONE     },  
+/* 55  ???   */ { KEY_NONE     ,K2K(SDLK_F2)          ,KEY_NONE     ,KEY_NONE     },  
+/* 56  Lft|  */ { KEY_NONE     ,K2K(SDLK_F3)          ,KEY_NONE     ,KEY_NONE     },  
+/* 57  ???   */ { KEY_NONE     ,K2K(SDLK_F4)          ,KEY_NONE     ,KEY_NONE     },  
+/* 58  ???   */ { KEY_NONE     ,K2K(SDLK_F5)          ,KEY_NONE     ,KEY_NONE     },  
+/* 59  ???   */ { KEY_NONE     ,K2K(SDLK_F6)          ,KEY_NONE     ,KEY_NONE     },  
+/* 5A  ???   */ { KEY_NONE     ,K2K(SDLK_F7)          ,KEY_NONE     ,KEY_NONE     },  
+/* 5B  ???   */ { KEY_NONE     ,K2K(SDLK_F8)          ,KEY_NONE     ,KEY_NONE     },  
+/* 5C  ???   */ { KEY_NONE     ,K2K(SDLK_F9)          ,KEY_NONE     ,KEY_NONE     },  
+/* 5D  ???   */ { KEY_NONE     ,K2K(SDLK_F10)         ,KEY_NONE     ,KEY_NONE     },  
+/* 5E  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F1)          ,KEY_NONE     },  
+/* 5F  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F2)          ,KEY_NONE     },  
+/* 60  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F3)          ,KEY_NONE     },  
+/* 61  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F4)          ,KEY_NONE     },  
+/* 62  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F5)          ,KEY_NONE     },  
+/* 63  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F6)          ,KEY_NONE     },  
+/* 64  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F7)          ,KEY_NONE     },  
+/* 65  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F8)          ,KEY_NONE     },  
+/* 66  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F9)          ,KEY_NONE     },  
+/* 67  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F10)         ,KEY_NONE     },  
+/* 68  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F1)          },  
+/* 69  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F2)          },  
+/* 6A  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F3)          },  
+/* 6B  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F4)          },  
+/* 6C  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F5)          },  
+/* 6D  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F6)          },  
+/* 6E  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F7)          },  
+/* 6F  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F8)          },  
+/* 70  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F9)          },  
+/* 71  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F10)         },  
+/* 72  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 73  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_LEFT)        ,KEY_NONE     },  
+/* 74  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_RIGHT)       ,KEY_NONE     },  
+/* 75  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_END)         ,KEY_NONE     },  
+/* 76  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_PAGEDOWN)    ,KEY_NONE     },  
+/* 77  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_HOME)        ,KEY_NONE     },  
+/* 78  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_1)           },  
+/* 79  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_2)           },  
+/* 7A  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_3)           },  
+/* 7B  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_4)           },  
+/* 7C  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_5)           },  
+/* 7D  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_6)           },  
+/* 7E  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_7)           },  
+/* 7F  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_8)           },  
+/* 80  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_9)           },  
+/* 81  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_0)           },  
+/* 82  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_MINUS)       },  
+/* 83  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_EQUALS)      },  
+/* 84  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_PAGEUP)      ,KEY_NONE     },  
+/* 85  F11   */ { K2K(SDLK_F11)         ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 86  F12   */ { K2K(SDLK_F12)         ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 87  ???   */ { KEY_NONE     ,K2K(SDLK_F11)         ,KEY_NONE     ,KEY_NONE     },  
+/* 88  ???   */ { KEY_NONE     ,K2K(SDLK_F12)         ,KEY_NONE     ,KEY_NONE     },  
+/* 89  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F11)         ,KEY_NONE     },  
+/* 8A  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F12)         ,KEY_NONE     },  
+/* 8B  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F11)         },  
+/* 8C  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_F12)         },  
+/* 8D  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_UP)          ,KEY_NONE     },  
+/* 8E  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_KP_MINUS)    ,KEY_NONE     },  
+/* 8F  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_KP_5)         ,KEY_NONE     },  
+/* 90  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_KP_PLUS)     ,KEY_NONE     },  
+/* 91  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_DOWN)        ,KEY_NONE     },  
+/* 92  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_INSERT)      ,KEY_NONE     },  
+/* 93  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_DELETE)      ,KEY_NONE     },  
+/* 94  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_TAB)         ,KEY_NONE     },  
+/* 95  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_KP_DIVIDE)   ,KEY_NONE     },  
+/* 96  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_KP_MULTIPLY) ,KEY_NONE     },  
+/* 97  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_HOME)        },  
+/* 98  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_UP)          },  
+/* 99  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_PAGEUP)      },  
+/* 9A  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 9B  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_LEFT)        },  
+/* 9C  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 9D  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_RIGHT)       },  
+/* 9E  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* 9F  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_END)         },  
+/* A0  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_DOWN)        },  
+/* A1  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_PAGEUP)      },  
+/* A2  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_INSERT)      },  
+/* A3  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_DELETE)      },  
+/* A4  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_KP_DIVIDE)   },  
+/* A5  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_TAB)         },  
+/* A6  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_KP_ENTER)    },  
+/* A7  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* A8  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* A9  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* AA  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* AB  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* AC  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* AD  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* AE  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* AF  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B0  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B1  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B2  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B3  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B4  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B5  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B6  Win L */ { K2K(SDLK_LGUI)      ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B7  Win R */ { K2K(SDLK_RGUI)      ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B8  Win M */ { K2K(SDLK_MENU)        ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* B9  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* BA  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* BB  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* BC  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* BD  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* BE  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* BF  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C0  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C1  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C2  ???   */ { KEY_NONE     ,K2K(SDLK_LGUI)      ,KEY_NONE     ,KEY_NONE     },  
+/* C3  ???   */ { KEY_NONE     ,K2K(SDLK_RGUI)      ,KEY_NONE     ,KEY_NONE     },  
+/* C4  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C5  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C6  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C7  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C8  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* C9  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* CA  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* CB  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* CC  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* CD  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* CE  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_LGUI)      ,KEY_NONE     },  
+/* CF  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_RGUI)      ,KEY_NONE     },  
+/* D0  ???   */ { KEY_NONE     ,KEY_NONE     ,K2K(SDLK_MENU)        ,KEY_NONE     },  
+/* D1  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D2  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D3  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D4  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D5  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D6  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D7  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D8  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* D9  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* DA  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_LGUI)      },  
+/* DB  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_RGUI)      },  
+/* DC  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,K2K(SDLK_MENU)        },  
+/* DD  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* DE  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* DF  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E0  Enter */ { K2K(SDLK_KP_ENTER)    ,K2K(SDLK_KP_ENTER)    ,K2K(SDLK_KP_ENTER)    ,KEY_NONE     },  
+/* E1  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E2  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E3  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E4  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E5  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E6  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E7  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E8  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* E9  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* EA  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* EB  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* EC  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* ED  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* EE  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* EF  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F0  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F1  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F2  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F3  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F4  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F5  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F6  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F7  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F8  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* F9  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* FA  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* FB  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* FC  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* FD  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* FE  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
+/* FF  ???   */ { KEY_NONE     ,KEY_NONE     ,KEY_NONE     ,KEY_NONE     },  
 };
 
 // Conversion de l'ancien codage des touches:
@@ -324,7 +325,7 @@ word Key_for_scancode(word scancode)
 }
 
 // Convertit des modificateurs de touches SDL en modificateurs GrafX2
-word Key_modifiers(SDLMod mod)
+word Key_modifiers(SDL_Keymod mod)
 {
   word modifiers=0;
   
@@ -334,33 +335,25 @@ word Key_modifiers(SDLMod mod)
       modifiers|=MOD_SHIFT;
     if (mod & (KMOD_ALT|KMOD_MODE))
       modifiers|=MOD_ALT;
-    if (mod & (KMOD_META))
+    if (mod & (KMOD_GUI))
       modifiers|=MOD_META;
 
   return modifiers;
 }
 
-word Keysym_to_keycode(SDL_keysym keysym)
+word Keysym_to_keycode(SDL_Keysym keysym)
 {
   word key_code = 0;
   word mod;
 
-  // On ignore shift, alt et control isolés.
+  // Ignore an isolate pressing of shift, alt and control
   if (keysym.sym == SDLK_RSHIFT || keysym.sym == SDLK_LSHIFT ||
       keysym.sym == SDLK_RCTRL  || keysym.sym == SDLK_LCTRL ||
       keysym.sym == SDLK_RALT   || keysym.sym == SDLK_LALT ||
-      keysym.sym == SDLK_RMETA  || keysym.sym == SDLK_LMETA ||
       keysym.sym == SDLK_MODE) // AltGr
   return 0;
   
-  // Les touches qui n'ont qu'une valeur unicode (très rares)
-  // seront codées sur 11 bits, le 12e bit est mis à 1 (0x0800)
-  if (keysym.sym != 0)
-    key_code = keysym.sym;
-  else if (keysym.scancode != 0)
-  {
-    key_code = (keysym.scancode & 0x07FF) | 0x0800;
-  }
+  key_code = K2K(keysym.sym);
   
   // Normally I should test keysym.mod here, but on windows the implementation
   // is buggy: if you release a modifier key, the following keys (when they repeat)
@@ -381,87 +374,88 @@ const char * Key_name(word key)
   } T_key_label;
   T_key_label key_labels[] =
   {
-    { SDLK_BACKSPACE   , "Backspace" },
-    { SDLK_TAB         , "Tab" },
-    { SDLK_CLEAR       , "Clear" },
-    { SDLK_RETURN      , "Return" },
-    { SDLK_PAUSE       , "Pause" },
-    { SDLK_ESCAPE      , "Esc" },
-    { SDLK_DELETE      , "Del" },
-    { SDLK_KP0         , "KP 0" },
-    { SDLK_KP1         , "KP 1" },
-    { SDLK_KP2         , "KP 2" },
-    { SDLK_KP3         , "KP 3" },
-    { SDLK_KP4         , "KP 4" },
-    { SDLK_KP5         , "KP 5" },
-    { SDLK_KP6         , "KP 6" },
-    { SDLK_KP7         , "KP 7" },
-    { SDLK_KP8         , "KP 8" },
-    { SDLK_KP9         , "KP 9" },
-    { SDLK_KP_PERIOD   , "KP ." },
-    { SDLK_KP_DIVIDE   , "KP /" },
-    { SDLK_KP_MULTIPLY,  "KP *" },
-    { SDLK_KP_MINUS    , "KP -" },
-    { SDLK_KP_PLUS     , "KP +" },
-    { SDLK_KP_ENTER    , "KP Enter" },
-    { SDLK_KP_EQUALS   , "KP =" },
-    { SDLK_UP          , "Up" },
-    { SDLK_DOWN        , "Down" },
-    { SDLK_RIGHT       , "Right" },
-    { SDLK_LEFT        , "Left" },
-    { SDLK_INSERT      , "Ins" },
-    { SDLK_HOME        , "Home" },
-    { SDLK_END         , "End" },
-    { SDLK_PAGEUP      , "PgUp" },
-    { SDLK_PAGEDOWN    , "PgDn" },
-    { SDLK_F1          , "F1" },
-    { SDLK_F2          , "F2" },
-    { SDLK_F3          , "F3" },
-    { SDLK_F4          , "F4" },
-    { SDLK_F5          , "F5" },
-    { SDLK_F6          , "F6" },
-    { SDLK_F7          , "F7" },
-    { SDLK_F8          , "F8" },
-    { SDLK_F9          , "F9" },
-    { SDLK_F10         , "F10" },
-    { SDLK_F11         , "F11" },
-    { SDLK_F12         , "F12" },
-    { SDLK_F13         , "F13" },
-    { SDLK_F14         , "F14" },
-    { SDLK_F15         , "F15" },
-    { SDLK_NUMLOCK     , "NumLock" },
-    { SDLK_CAPSLOCK    , "CapsLck" },
-    { SDLK_SCROLLOCK   , "ScrlLock" },
-    { SDLK_RSHIFT      , "RShift" },
-    { SDLK_LSHIFT      , "LShift" },
-    { SDLK_RCTRL       , "RCtrl" },
-    { SDLK_LCTRL       , "LCtrl" },
-    { SDLK_RALT        , "RAlt" },
-    { SDLK_LALT        , "LAlt" },
-    { SDLK_RMETA       , "RMeta" },
-    { SDLK_LMETA       , "LMeta" },
-    { SDLK_LSUPER      , "LWin" },
-    { SDLK_RSUPER      , "RWin" },
-    { SDLK_MODE        , "AltGr" },
-    { SDLK_COMPOSE     , "Comp" },
-    { SDLK_HELP        , "Help" },
-    { SDLK_PRINT       , "Print" },
-    { SDLK_SYSREQ      , "SysReq" },
-    { SDLK_BREAK       , "Break" },
-    { SDLK_MENU        , "Menu" },
-    { SDLK_POWER       , "Power" },
-    { SDLK_EURO        , "Euro" },
-    { SDLK_UNDO        , "Undo" },
-    { KEY_MOUSEMIDDLE, "Mouse3" },
-    { KEY_MOUSEWHEELUP, "WheelUp" },
-    { KEY_MOUSEWHEELDOWN, "WheelDown" }
+    { K2K(SDLK_BACKSPACE)   , "Backspace" },
+    { K2K(SDLK_TAB)         , "Tab" },
+    { K2K(SDLK_CLEAR)       , "Clear" },
+    { K2K(SDLK_RETURN)      , "Return" },
+    { K2K(SDLK_PAUSE)       , "Pause" },
+    { K2K(SDLK_ESCAPE)      , "Esc" },
+    { K2K(SDLK_DELETE)      , "Del" },
+    { K2K(SDLK_KP_0)        , "KP 0" },
+    { K2K(SDLK_KP_1)        , "KP 1" },
+    { K2K(SDLK_KP_2)        , "KP 2" },
+    { K2K(SDLK_KP_3)        , "KP 3" },
+    { K2K(SDLK_KP_4)        , "KP 4" },
+    { K2K(SDLK_KP_5)        , "KP 5" },
+    { K2K(SDLK_KP_6)        , "KP 6" },
+    { K2K(SDLK_KP_7)        , "KP 7" },
+    { K2K(SDLK_KP_8)        , "KP 8" },
+    { K2K(SDLK_KP_9)        , "KP 9" },
+    { K2K(SDLK_KP_PERIOD)   , "KP ." },
+    { K2K(SDLK_KP_DIVIDE)   , "KP /" },
+    { K2K(SDLK_KP_MULTIPLY) , "KP *" },
+    { K2K(SDLK_KP_MINUS)    , "KP -" },
+    { K2K(SDLK_KP_PLUS)     , "KP +" },
+    { K2K(SDLK_KP_ENTER)    , "KP Enter" },
+    { K2K(SDLK_KP_EQUALS)   , "KP =" },
+    { K2K(SDLK_UP)          , "Up" },
+    { K2K(SDLK_DOWN)        , "Down" },
+    { K2K(SDLK_RIGHT)       , "Right" },
+    { K2K(SDLK_LEFT)        , "Left" },
+    { K2K(SDLK_INSERT)      , "Ins" },
+    { K2K(SDLK_HOME)        , "Home" },
+    { K2K(SDLK_END)         , "End" },
+    { K2K(SDLK_PAGEUP)      , "PgUp" },
+    { K2K(SDLK_PAGEDOWN)    , "PgDn" },
+    { K2K(SDLK_F1)          , "F1" },
+    { K2K(SDLK_F2)          , "F2" },
+    { K2K(SDLK_F3)          , "F3" },
+    { K2K(SDLK_F4)          , "F4" },
+    { K2K(SDLK_F5)          , "F5" },
+    { K2K(SDLK_F6)          , "F6" },
+    { K2K(SDLK_F7)          , "F7" },
+    { K2K(SDLK_F8)          , "F8" },
+    { K2K(SDLK_F9)          , "F9" },
+    { K2K(SDLK_F10)         , "F10" },
+    { K2K(SDLK_F11)         , "F11" },
+    { K2K(SDLK_F12)         , "F12" },
+    { K2K(SDLK_F13)         , "F13" },
+    { K2K(SDLK_F14)         , "F14" },
+    { K2K(SDLK_F15)         , "F15" },
+    { K2K(SDLK_NUMLOCKCLEAR), "NumLock" },
+    { K2K(SDLK_CAPSLOCK)    , "CapsLck" },
+    { K2K(SDLK_SCROLLLOCK)  , "ScrlLock" },
+    { K2K(SDLK_RSHIFT)      , "RShift" },
+    { K2K(SDLK_LSHIFT)      , "LShift" },
+    { K2K(SDLK_RCTRL)       , "RCtrl" },
+    { K2K(SDLK_LCTRL)       , "LCtrl" },
+    { K2K(SDLK_RALT)        , "RAlt" },
+    { K2K(SDLK_LALT)        , "LAlt" },
+    { K2K(SDLK_LGUI)        , "LWin" },
+    { K2K(SDLK_RGUI)        , "RWin" },
+    { K2K(SDLK_MODE)        , "AltGr" },
+    { K2K(SDLK_APPLICATION) , "App" },
+    { K2K(SDLK_HELP)        , "Help" },
+    { K2K(SDLK_PRINTSCREEN) , "Print" },
+    { K2K(SDLK_SYSREQ)      , "SysReq" },
+    { K2K(SDLK_PAUSE)       , "Pause" },
+    { K2K(SDLK_MENU)        , "Menu" },
+    { K2K(SDLK_POWER)       , "Power" },
+    { K2K(SDLK_UNDO)        , "Undo" },
+    { KEY_MOUSEMIDDLE       , "Mouse3" },
+    { KEY_MOUSEX1           , "Mouse4" },
+    { KEY_MOUSEX2           , "Mouse5" },
+    { KEY_MOUSEWHEELUP      , "WheelUp" },
+    { KEY_MOUSEWHEELDOWN    , "WheelDown" },
+    { KEY_MOUSEWHEELLEFT    , "WheelLeft" },
+    { KEY_MOUSEWHEELRIGHT   , "WheelRight" },
   };
 
   int index;
   static char buffer[41];
   buffer[0] = '\0';
 
-  if (key == SDLK_UNKNOWN)
+  if (key == KEY_NONE)
     return "None";
   
   if (key & MOD_CTRL)
@@ -471,16 +465,15 @@ const char * Key_name(word key)
   if (key & MOD_SHIFT)
     strcat(buffer, "Shift+");
   if (key & MOD_META)
-    strcat(buffer, META_KEY_PREFIX);
+    strcat(buffer, GUI_KEY_PREFIX);
   
   key=key & ~(MOD_CTRL|MOD_ALT|MOD_SHIFT);
   
-  // 99 is only a sanity check
-  if (key>=KEY_JOYBUTTON && key<=KEY_JOYBUTTON+99)
+  // Joystick button
+  if (key & 0x0100)
   {
-    
     char *button_name;
-    switch(key-KEY_JOYBUTTON)
+    switch(key & 0xFF)
     {
       #ifdef JOY_BUTTON_UP
       case JOY_BUTTON_UP: button_name="[UP]"; break;
@@ -558,33 +551,26 @@ const char * Key_name(word key)
       case JOY_BUTTON_JOY: button_name="[THUMB JOY]"; break;
       #endif
       
-      default: sprintf(buffer+strlen(buffer), "[B%d]", key-KEY_JOYBUTTON);return buffer;
+      default: sprintf(buffer+strlen(buffer), "[B%d]", key&0xFF);return buffer;
     }
     strcat(buffer,button_name);
 
     return buffer;
   }
-  
-  if (key & 0x800)
-  {
-    sprintf(buffer+strlen(buffer), "[%d]", key & 0x7FF);
-    return buffer;
-  }
-  key = key & 0x7FF;
-  // Touches ASCII
-  if (key>=' ' && key < 127)
+  // ASCII Key
+  if ((key & 0xFF00) == 0 && (key & 0xFF) >= ' ' && (key & 0xFF) <= 0x7F)  
   {
     sprintf(buffer+strlen(buffer), "'%c'", toupper(key));
     return buffer;
   }
-  // Touches 'World'
-  if (key>=SDLK_WORLD_0 && key <= SDLK_WORLD_95)
+  /*
+  // 'World' keys
+  if (key>=K2K(SDLK_WORLD_0) && key <= K2K(SDLK_WORLD_95))
   {
-    sprintf(buffer+strlen(buffer), "w%d", key - SDLK_WORLD_0);
+    sprintf(buffer+strlen(buffer), "w%d", key - K2K(SDLK_WORLD_0);
     return buffer;
-  }
-                             
-  // Touches au libellé connu
+  }*/
+  // Keys with a known label
   for (index=0; index < (long)sizeof(key_labels)/(long)sizeof(T_key_label);index++)
   {
     if (key == key_labels[index].keysym)
@@ -593,37 +579,86 @@ const char * Key_name(word key)
       return buffer;
     }
   }
-  // Autres touches inconnues
+  // Other unknown keys
   sprintf(buffer+strlen(buffer), "0x%X", key & 0x7FF);
   return buffer;
 
 }
 
+
+///
+/// Get the first unicode character at the begininng of an UTF-8 string.
+/// The character is written to 'character', and the function returns a
+/// pointer to the next character. If an invalid utf-8 sequence is found,
+/// the function returns NULL - it's unsafe to keep parsing from this point.
+const char * Parse_utf8_string(const char * str, word *character)
+{
+  int number_bytes = 0;
+  
+  if ((str[0] & 0x80) == 0)
+  {
+   // 0xxxxxxx
+    *character=str[0];
+    number_bytes=1;
+  }
+  // 110xxxxx 10xxxxxx
+  else if ((str[0] & 0xE0) == 0xC0)
+  {
+    *character=str[0] & 31;
+    number_bytes=2;    
+  }
+  // 1110xxxx 10xxxxxx 10xxxxxx
+  else if ((str[0] & 0xF0) == 0xE0)
+  {
+    *character=str[0] & 15;
+    number_bytes=3;
+  }
+  // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+  else if ((str[0] & 0xF8) == 0xF0)
+  {
+    *character=str[0] & 7;
+    number_bytes=4;
+  }
+  else
+    return NULL;
+  while(--number_bytes)
+  {
+    str++;
+    if ((str[0] & 0xC0) != 0x80)
+      return NULL;
+    *character = (*character << 6) | (str[0] & 0x3F);    
+  };
+  // DEBUG
+  printf("[%X]\n",*character);
+  return str+1;
+}
+
 // Obtient le caractère ANSI tapé, à partir d'un keysym.
 // (Valeur 32 à 255)
 // Renvoie 0 s'il n'y a pas de caractère associé (shift, backspace, etc)
-word Keysym_to_ANSI(SDL_keysym keysym)
+word Keysym_to_ANSI(SDL_Keysym keysym)
 {
+/*
   // This part was removed from the MacOSX port, but I put it back for others
   // as on Linux and Windows, it's what allows editing a text line with the keys
-  // SDLK_LEFT, SDLK_RIGHT, SDLK_HOME, SDLK_END etc.
+  // K2K(SDLK_LEFT), K2K(SDLK_RIGHT), K2K(SDLK_HOME), K2K(SDLK_END) etc.
   #if !(defined(__macosx__) || defined(__FreeBSD__))
   if ( keysym.unicode == 0)
   {
 
     switch(keysym.sym)
     {
-      case SDLK_DELETE:
-      case SDLK_LEFT:
-      case SDLK_RIGHT:
-      case SDLK_HOME:
-      case SDLK_END:
-      case SDLK_BACKSPACE:
+      case K2K(SDLK_DELETE):
+      case K2K(SDLK_LEFT):
+      case K2K(SDLK_RIGHT):
+      case K2K(SDLK_HOME):
+      case K2K(SDLK_END):
+      case K2K(SDLK_BACKSPACE):
       case KEY_ESC:
         return keysym.sym;
-      case SDLK_RETURN:
+      case K2K(SDLK_RETURN):
         // Case alt-enter
-        if (SDL_GetModState() & (KMOD_ALT|KMOD_META))
+        if (SDL_GetModState() & (KMOD_ALT|KMOD_GUI))
           return '\n';
         return keysym.sym;
       default:
@@ -706,12 +741,12 @@ word Keysym_to_ANSI(SDL_keysym keysym)
     //     i don't why SDLK_DELETE was returned instead of SDLK_BACKSPACE
     if(keysym.unicode == 127)
     {
-        return(SDLK_BACKSPACE);
+        return(K2K(SDLK_BACKSPACE));
     }
     // We don't make any difference between return & enter in the app context.
     if(keysym.unicode == 3)
     {
-        return(SDLK_RETURN);
+        return(K2K(SDLK_RETURN));
     }
 #endif
     return keysym.unicode;
@@ -719,4 +754,6 @@ word Keysym_to_ANSI(SDL_keysym keysym)
 
  // Sinon c'est une touche spéciale, on retourne son scancode
   return keysym.sym;
+  */
+  return 0;
 }
